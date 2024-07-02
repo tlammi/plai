@@ -1,0 +1,36 @@
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+}
+
+#include <plai/media/frame.hpp>
+#include <utility>
+
+namespace plai::media {
+
+Frame::Frame() : m_raw(av_frame_alloc()) {
+  if (!m_raw) throw std::bad_alloc();
+}
+Frame::Frame(Frame&& other) noexcept
+    : m_raw(std::exchange(other.m_raw, nullptr)) {}
+
+Frame& Frame::operator=(Frame&& other) noexcept {
+  auto tmp = Frame(m_raw);
+  m_raw = std::exchange(other.m_raw, nullptr);
+  return *this;
+}
+
+Frame::~Frame() {
+  if (m_raw) av_frame_free(&m_raw);
+}
+
+Frame::operator bool() const noexcept {
+  if (!m_raw) return false;
+  if (!m_raw->data) return false;
+  return true;
+}
+
+int Frame::width() const noexcept { return m_raw->width; }
+int Frame::height() const noexcept { return m_raw->width; }
+
+}  // namespace plai::media
