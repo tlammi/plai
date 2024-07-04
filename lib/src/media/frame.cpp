@@ -26,7 +26,8 @@ Frame::~Frame() {
 
 Frame::operator bool() const noexcept {
   if (!m_raw) return false;
-  if (!m_raw->data) return false;
+  if (!m_raw->width) return false;
+  if (!m_raw->height) return false;
   return true;
 }
 

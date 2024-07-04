@@ -6,4 +6,5 @@ SRCS += files(
   'decoder.cpp',
   'stream_view.cpp',
   'stream_view_span.cpp',
+  'hwaccel.cpp',
 )

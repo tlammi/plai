@@ -1,5 +1,6 @@
 #include <plai/exceptions.hpp>
 #include <plai/media/decoder.hpp>
+#include <plai/util/defer.hpp>
 
 #include "av_check.hpp"
 

@@ -1,9 +1,10 @@
 
 
 DEPS = [
-  dependency('libavcodec'),
-  dependency('libavformat'),
-  dependency('libavutil'),
+  # segfaults occur with older versions
+  dependency('libavcodec', version: '>=61'),
+  dependency('libavformat', version: '>=61'),
+  dependency('libavutil', version: '>=59'),
 ]
 
 SRCS = []
