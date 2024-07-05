@@ -9,12 +9,18 @@ namespace plai::logs {
 void init(Level lvl);
 
 namespace detail {
-void push_log(Level lvl, TimePoint tp, std::string msg);
-}
+void push_log(Level lvl, SystemTimePoint stp, TimePoint tp, std::string msg);
+Level level() noexcept;
+}  // namespace detail
 
-#define PLAI_LOG(lvl, fmt, ...)                                          \
-  ::plai::logs::detail::push_log(::plai::logs::Level::lvl, Clock::now(), \
-                                 std::format(fmt "\n", __VA_ARGS__))
+#define PLAI_LOG(lvl, fmt, ...)                                      \
+  do {                                                               \
+    if (::plai::logs::Level::lvl >= ::plai::logs::detail::level()) { \
+      ::plai::logs::detail::push_log(                                \
+          ::plai::logs::Level::lvl, ::plai::SystemClock::now(),      \
+          ::plai::Clock::now(), std::format(fmt, ##__VA_ARGS__));    \
+    }                                                                \
+  } while (0)
 
 #define PLAI_TRACE(...) PLAI_LOG(Trace, __VA_ARGS__)
 #define PLAI_DEBUG(...) PLAI_LOG(Debug, __VA_ARGS__)
