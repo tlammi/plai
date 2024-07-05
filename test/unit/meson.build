@@ -1,4 +1,4 @@
-tests = files('demux.cpp', 'decode.cpp')
+tests = files('demux.cpp', 'decode.cpp', 'ring_buffer.cpp')
 
 fs = import('fs')
 
