@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace plai::media {
+namespace plai {
 
 class Exception : public std::runtime_error {
  protected:
@@ -16,7 +16,8 @@ class Exception : public std::runtime_error {
 class ValueError : public Exception {
  public:
   ValueError(const char* msg) noexcept : Exception(msg) {}
+  ValueError(const std::string& s) noexcept : Exception(s) {}
 
  private:
 };
-}  // namespace plai::media
+}  // namespace plai
