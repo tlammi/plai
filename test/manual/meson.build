@@ -1,5 +1,10 @@
 
-tests = files('pkt_count.cpp', 'void_decoder.cpp', 'hwaccel_list.cpp')
+tests = files(
+  'pkt_count.cpp',
+  'void_decoder.cpp',
+  'hwaccel_list.cpp',
+  'player.cpp'
+)
 
 fs = import('fs')
 
@@ -9,6 +14,3 @@ foreach t: tests
   exec = exec.replace('_', '-')
   executable(exec, t, dependencies: libplai_dep)
 endforeach
-
-# executable('pkt-count', 'pkt_count.cpp', dependencies: [libplai_dep])
-# executable('void-decoder', 'void_decoder.cpp', dependencies: [libplai_dep])
