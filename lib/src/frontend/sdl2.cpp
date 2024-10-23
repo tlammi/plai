@@ -2,6 +2,7 @@
 #include "sdl2.hpp"
 
 #include <SDL2/SDL.h>
+#include <libavutil/common.h>
 #include <libavutil/frame.h>
 #include <libavutil/pixfmt.h>
 
@@ -11,6 +12,7 @@
 #include <plai/logs/logs.hpp>
 #include <plai/util/array.hpp>
 #include <print>
+#include <thread>
 
 #include "SDL_pixels.h"
 #include "SDL_render.h"
@@ -50,6 +52,18 @@ auto av_to_sdl_pixel_fmt(AVPixelFormat in) {
     if (in == av) return sdl;
   }
   return SDL_PIXELFORMAT_UNKNOWN;
+}
+
+auto av_pixel_to_sdl_blend_mode(AVPixelFormat in) {
+  switch (in) {
+    case AV_PIX_FMT_RGB32:
+    case AV_PIX_FMT_RGB32_1:
+    case AV_PIX_FMT_BGR32:
+    case AV_PIX_FMT_BGR32_1:
+      return SDL_BLENDMODE_BLEND;
+    default:
+      return SDL_BLENDMODE_NONE;
+  }
 }
 
 }  // namespace sdl_detail
@@ -104,7 +118,8 @@ class Sdl2Window final : public Window {
       : m_win(SDL_CreateWindow("plai", SDL_WINDOWPOS_UNDEFINED,
                                SDL_WINDOWPOS_UNDEFINED, 600, 400,
                                SDL_WINDOW_SHOWN)),
-        m_rend(SDL_CreateRenderer(m_win, -1, SDL_RENDERER_ACCELERATED)) {
+        m_rend(SDL_CreateRenderer(
+            m_win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)) {
     if (!m_win) sdl2_detail::panic();
     if (!m_rend) {
       SDL_DestroyWindow(m_win);
@@ -136,26 +151,58 @@ class Sdl2Window final : public Window {
     const AVFrame* avframe = frm.raw();
     auto sdl_pix_fmt = sdl_detail::av_to_sdl_pixel_fmt(
         static_cast<AVPixelFormat>(avframe->format));
-    if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN)
+    if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
       sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
+    }
+    std::println("pixel format: {}", SDL_GetPixelFormatName(sdl_pix_fmt));
     auto* texture =
         SDL_CreateTexture(m_rend, sdl_pix_fmt, SDL_TEXTUREACCESS_STREAMING,
                           frm.width(), frm.height());
+    SDL_SetTextureBlendMode(texture,
+                            sdl_detail::av_pixel_to_sdl_blend_mode(
+                                static_cast<AVPixelFormat>(avframe->format)));
+    void* pixels{};
+    int pitch{};
+    SDL_LockTexture(texture, nullptr, &pixels, &pitch);
+    memset(pixels, 0, pitch * frm.height());
     assert(texture);
-    if (avframe->linesize[0] < 0) {
-      int res = SDL_UpdateTexture(
-          texture, nullptr,
-          avframe->data[0] + avframe->linesize[0] * (avframe->height - 1),
-          -avframe->linesize[0]);
-      if (res) std::println("failed to update texture 1");
+    if (sdl_pix_fmt == SDL_PIXELFORMAT_IYUV) {
+      if (avframe->linesize[0] > 0 && avframe->linesize[1] > 0 &&
+          avframe->linesize[2] > 0) {
+        SDL_UpdateYUVTexture(texture, nullptr, avframe->data[0],
+                             avframe->linesize[0], avframe->data[1],
+                             avframe->linesize[1], avframe->data[2],
+                             avframe->linesize[2]);
+      } else if (avframe->linesize[0] < 0 && avframe->linesize[1] < 0 &&
+                 avframe->linesize[2] < 0) {
+        SDL_UpdateYUVTexture(
+            texture, nullptr,
+            avframe->data[0] + avframe->linesize[0] * (avframe->height - 1),
+            -avframe->linesize[0],
+            avframe->data[1] +
+                avframe->linesize[1] * (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
+            -avframe->linesize[1],
+            avframe->data[2] +
+                avframe->linesize[2] * (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
+            -avframe->linesize[2]);
+      } else {
+        PLAI_ERR("Mixed negative and positive linesizes are not supported");
+      }
     } else {
-      int res = SDL_UpdateTexture(texture, nullptr, avframe->data[0],
-                                  avframe->linesize[0]);
-      if (res) std::println("failed to update texture 2");
+      if (avframe->linesize[0] < 0) {
+        int res = SDL_UpdateTexture(
+            texture, nullptr,
+            avframe->data[0] + avframe->linesize[0] * (avframe->height - 1),
+            -avframe->linesize[0]);
+        if (res) std::println("failed to update texture 1");
+      } else {
+        int res = SDL_UpdateTexture(texture, nullptr, avframe->data[0],
+                                    avframe->linesize[0]);
+        if (res) std::println("failed to update texture 2");
+      }
     }
     SDL_RenderCopy(m_rend, texture, nullptr, nullptr);
     SDL_RenderPresent(m_rend);
-    // SDL_DestroyTexture(texture);
   }
 
   std::shared_ptr<Sdl2Init> m_init_handle = Sdl2Init::instance();
