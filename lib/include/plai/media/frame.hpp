@@ -18,6 +18,7 @@ class Frame {
   ~Frame();
 
   [[nodiscard]] AVFrame* raw() noexcept { return m_raw; }
+  [[nodiscard]] const AVFrame* raw() const noexcept { return m_raw; }
 
   /**
    * \brief False for empty frames

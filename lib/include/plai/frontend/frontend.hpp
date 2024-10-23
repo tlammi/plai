@@ -10,6 +10,8 @@ class Frontend {
  public:
   explicit Frontend(std::unique_ptr<Window> w) noexcept : m_win(std::move(w)) {}
 
+  void render(const media::Frame& frm) { m_win->render(frm); }
+
  private:
   std::unique_ptr<Window> m_win;
 };

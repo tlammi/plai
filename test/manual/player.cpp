@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
       decoder << pkt;
       if (!(decoder >> frm)) continue;
       if (!frm.width()) break;
+      front.render(frm);
     }
 
   } catch (const std::exception& e) {
