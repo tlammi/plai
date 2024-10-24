@@ -45,6 +45,10 @@ class Decoder {
    * */
   bool operator>>(Frame& frm);
 
+  int width() const noexcept;
+  int height() const noexcept;
+  Vec<int> dims() const noexcept { return {width(), height()}; }
+
  private:
   AVCodecContext* m_ctx;
 };

@@ -47,4 +47,6 @@ bool Decoder::operator>>(Frame& frm) {
   if (res == AVERROR(EAGAIN)) return false;
   throw AVException(res);
 }
+int Decoder::width() const noexcept { return m_ctx->width; }
+int Decoder::height() const noexcept { return m_ctx->height; }
 }  // namespace plai::media
