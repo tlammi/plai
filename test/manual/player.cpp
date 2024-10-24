@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     auto front = plai::frontend("sdl2").commit();
 
     auto demux = Demux(argv[1]);
-    auto [stream_idx, stream] = demux.streams().any_video_stream();
+    auto [stream_idx, stream] = demux.best_video_stream();
     auto decoder = Decoder(stream);
     Packet pkt{};
     Frame frm{};
@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
       if (pkt.stream_index() != stream_idx) continue;
       decoder << pkt;
       if (!(decoder >> frm)) continue;
+      std::println("decoder size: ({}, {})", decoder.width(), decoder.height());
       if (!frm.width()) break;
       front.render(frm);
     }
