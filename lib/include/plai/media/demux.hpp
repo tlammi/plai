@@ -44,6 +44,8 @@ class Demux {
 
   StreamViewSpan streams() noexcept;
 
+  std::pair<std::size_t, StreamView> best_video_stream();
+
  private:
   /**
    * \brief Callback for FFmpeg when reading from in-memory buffer

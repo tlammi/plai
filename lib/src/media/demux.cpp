@@ -6,6 +6,7 @@
 #include <print>
 
 #include "av_check.hpp"
+#include "plai/media/exceptions.hpp"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -27,6 +28,7 @@ Demux::Demux(std::span<const uint8_t> buf)
     : m_buf(buf), m_ctx(avformat_alloc_context()) {
   if (!m_ctx) throw std::bad_alloc();
 
+  // TODO: Leaks memory
   void* iobuf = av_malloc(demux_detail::AV_IO_BUFFER_SIZE);
   if (!iobuf) throw std::bad_alloc();
 
@@ -87,6 +89,12 @@ bool Demux::operator>>(Packet& pkt) {
 StreamViewSpan Demux::streams() noexcept {
   assert(m_ctx);
   return {m_ctx->streams, m_ctx->nb_streams};
+}
+std::pair<std::size_t, StreamView> Demux::best_video_stream() {
+  assert(m_ctx);
+  int res = av_find_best_stream(m_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+  if (res < 0) throw AVException(res);
+  return {res, StreamView(m_ctx->streams[res])};
 }
 
 int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
