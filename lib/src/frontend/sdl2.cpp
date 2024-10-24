@@ -22,8 +22,8 @@ namespace {
 namespace sdl_detail {
 
 struct PixelFmtMapEntry {
-  AVPixelFormat av;
-  SDL_PixelFormatEnum sdl;
+    AVPixelFormat av;
+    SDL_PixelFormatEnum sdl;
 };
 
 constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 19>{
@@ -48,22 +48,47 @@ constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 19>{
     {AV_PIX_FMT_UYVY422, SDL_PIXELFORMAT_UYVY}};
 
 auto av_to_sdl_pixel_fmt(AVPixelFormat in) {
-  for (const auto& [av, sdl] : AV_TO_SDL_PIXEL_FMT_MAP) {
-    if (in == av) return sdl;
-  }
-  return SDL_PIXELFORMAT_UNKNOWN;
+    for (const auto &[av, sdl] : AV_TO_SDL_PIXEL_FMT_MAP) {
+        if (in == av) return sdl;
+    }
+    return SDL_PIXELFORMAT_UNKNOWN;
 }
 
 auto av_pixel_to_sdl_blend_mode(AVPixelFormat in) {
-  switch (in) {
-    case AV_PIX_FMT_RGB32:
-    case AV_PIX_FMT_RGB32_1:
-    case AV_PIX_FMT_BGR32:
-    case AV_PIX_FMT_BGR32_1:
-      return SDL_BLENDMODE_BLEND;
-    default:
-      return SDL_BLENDMODE_NONE;
-  }
+    switch (in) {
+        case AV_PIX_FMT_RGB32:
+        case AV_PIX_FMT_RGB32_1:
+        case AV_PIX_FMT_BGR32:
+        case AV_PIX_FMT_BGR32_1: return SDL_BLENDMODE_BLEND;
+        default: return SDL_BLENDMODE_NONE;
+    }
+}
+
+SDL_Rect img_rect(const SDL_Point &window, SDL_Point img) {
+    auto window_rel = double(window.y) / window.x;
+    auto img_rel = double(img.y) / img.x;
+
+    if (img_rel >= window_rel) {
+        // image is "tall" -> require padding horizontally
+        double w = window.y * (double(img.x) / img.y);
+        int padding = double(window.x - w) / 2;
+        return {
+            .x = padding,
+            .y = 0,
+            .w = int(w),
+            .h = window.y,
+        };
+    }
+
+    // image is "wide" -> require padding vertically
+    double h = window.x * (double(img.y) / img.x);
+    int padding = double(window.y - h) / 2;
+    return {
+        .x = 0,
+        .y = padding,
+        .w = window.x,
+        .h = int(h),
+    };
 }
 
 }  // namespace sdl_detail
@@ -71,7 +96,7 @@ auto av_pixel_to_sdl_blend_mode(AVPixelFormat in) {
 
 class Sdl2Exception : public FrontendException {
  public:
-  Sdl2Exception() noexcept : FrontendException(SDL_GetError()) {}
+    Sdl2Exception() noexcept : FrontendException(SDL_GetError()) {}
 };
 
 namespace {
@@ -80,137 +105,149 @@ namespace sdl2_detail {
 }  // namespace sdl2_detail
 }  // namespace
 
-#define SDL_CHECK(expr)                                \
-  do {                                                 \
-    auto sdl_check_internal_res_ = (expr);             \
-    if (sdl_check_internal_res_ < 0) std::terminate(); \
-  } while (0)
+#define SDL_CHECK(expr)                                    \
+    do {                                                   \
+        auto sdl_check_internal_res_ = (expr);             \
+        if (sdl_check_internal_res_ < 0) std::terminate(); \
+    } while (0)
 
 class Sdl2Init {
-  struct Private {};
+    struct Private {};
 
  public:
-  explicit Sdl2Init(Private /*unused*/) { SDL_CHECK(SDL_Init(SDL_INIT_VIDEO)); }
-  ~Sdl2Init() {
-    // LeakSanitizer trips here
-#ifndef PLAI_SDL_NO_QUIT
-    SDL_Quit();
-#endif
-  }
-  static std::shared_ptr<Sdl2Init> instance() {
-    static std::mutex mut{};
-    std::unique_lock lk{mut};
-    static std::weak_ptr<Sdl2Init> inst{};
-    auto ptr = inst.lock();
-    if (!ptr) {
-      ptr = std::make_shared<Sdl2Init>(Private{});
-      inst = ptr;
+    explicit Sdl2Init(Private /*unused*/) {
+        SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
     }
-    return ptr;
-  }
+    ~Sdl2Init() {
+        // LeakSanitizer trips here
+#ifndef PLAI_SDL_NO_QUIT
+        SDL_Quit();
+#endif
+    }
+    static std::shared_ptr<Sdl2Init> instance() {
+        static std::mutex mut{};
+        std::unique_lock lk{mut};
+        static std::weak_ptr<Sdl2Init> inst{};
+        auto ptr = inst.lock();
+        if (!ptr) {
+            ptr = std::make_shared<Sdl2Init>(Private{});
+            inst = ptr;
+        }
+        return ptr;
+    }
 
  private:
 };
 
 class Sdl2Window final : public Window {
  public:
-  Sdl2Window()
-      : m_win(SDL_CreateWindow("plai", SDL_WINDOWPOS_UNDEFINED,
-                               SDL_WINDOWPOS_UNDEFINED, 600, 400,
-                               SDL_WINDOW_SHOWN)),
-        m_rend(SDL_CreateRenderer(
-            m_win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)) {
-    if (!m_win) sdl2_detail::panic();
-    if (!m_rend) {
-      SDL_DestroyWindow(m_win);
-      sdl2_detail::panic();
+    Sdl2Window()
+        : m_win(SDL_CreateWindow("plai", SDL_WINDOWPOS_UNDEFINED,
+                                 SDL_WINDOWPOS_UNDEFINED, 600, 400,
+                                 SDL_WINDOW_SHOWN)),
+          m_rend(SDL_CreateRenderer(
+              m_win, -1,
+              SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)) {
+        if (!m_win) sdl2_detail::panic();
+        if (!m_rend) {
+            SDL_DestroyWindow(m_win);
+            sdl2_detail::panic();
+        }
     }
-  }
 
-  ~Sdl2Window() {
-    PLAI_TRACE("destroying window");
-    if (m_win) SDL_DestroyWindow(m_win);
-  }
+    ~Sdl2Window() {
+        PLAI_TRACE("destroying window");
+        if (m_win) SDL_DestroyWindow(m_win);
+    }
 
  private:
-  void set_event_handlers_impl(FrontendEvents e) override {}
+    void set_event_handlers_impl(FrontendEvents e) override {}
 
-  bool set_fullscreen_impl(bool v) override {
-    assert(m_win);
-    int res = SDL_SetWindowFullscreen(m_win, v ? SDL_WINDOW_FULLSCREEN : 0);
-    return res == 0;
-  }
-
-  bool fullscreen_impl() const noexcept override {
-    assert(m_win);
-    auto flags = SDL_GetWindowFlags(m_win);
-    return flags & SDL_WINDOW_FULLSCREEN;
-  }
-
-  void render_impl(const media::Frame& frm) override {
-    const AVFrame* avframe = frm.raw();
-    auto sdl_pix_fmt = sdl_detail::av_to_sdl_pixel_fmt(
-        static_cast<AVPixelFormat>(avframe->format));
-    if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
-      sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
+    bool set_fullscreen_impl(bool v) override {
+        assert(m_win);
+        int res = SDL_SetWindowFullscreen(m_win, v ? SDL_WINDOW_FULLSCREEN : 0);
+        return res == 0;
     }
-    std::println("pixel format: {}", SDL_GetPixelFormatName(sdl_pix_fmt));
-    auto* texture =
-        SDL_CreateTexture(m_rend, sdl_pix_fmt, SDL_TEXTUREACCESS_STREAMING,
-                          frm.width(), frm.height());
-    SDL_SetTextureBlendMode(texture,
-                            sdl_detail::av_pixel_to_sdl_blend_mode(
-                                static_cast<AVPixelFormat>(avframe->format)));
-    void* pixels{};
-    int pitch{};
-    SDL_LockTexture(texture, nullptr, &pixels, &pitch);
-    memset(pixels, 0, pitch * frm.height());
-    assert(texture);
-    if (sdl_pix_fmt == SDL_PIXELFORMAT_IYUV) {
-      if (avframe->linesize[0] > 0 && avframe->linesize[1] > 0 &&
-          avframe->linesize[2] > 0) {
-        SDL_UpdateYUVTexture(texture, nullptr, avframe->data[0],
-                             avframe->linesize[0], avframe->data[1],
-                             avframe->linesize[1], avframe->data[2],
-                             avframe->linesize[2]);
-      } else if (avframe->linesize[0] < 0 && avframe->linesize[1] < 0 &&
-                 avframe->linesize[2] < 0) {
-        SDL_UpdateYUVTexture(
-            texture, nullptr,
-            avframe->data[0] + avframe->linesize[0] * (avframe->height - 1),
-            -avframe->linesize[0],
-            avframe->data[1] +
-                avframe->linesize[1] * (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
-            -avframe->linesize[1],
-            avframe->data[2] +
-                avframe->linesize[2] * (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
-            -avframe->linesize[2]);
-      } else {
-        PLAI_ERR("Mixed negative and positive linesizes are not supported");
-      }
-    } else {
-      if (avframe->linesize[0] < 0) {
-        int res = SDL_UpdateTexture(
-            texture, nullptr,
-            avframe->data[0] + avframe->linesize[0] * (avframe->height - 1),
-            -avframe->linesize[0]);
-        if (res) std::println("failed to update texture 1");
-      } else {
-        int res = SDL_UpdateTexture(texture, nullptr, avframe->data[0],
-                                    avframe->linesize[0]);
-        if (res) std::println("failed to update texture 2");
-      }
-    }
-    SDL_RenderCopy(m_rend, texture, nullptr, nullptr);
-    SDL_RenderPresent(m_rend);
-  }
 
-  std::shared_ptr<Sdl2Init> m_init_handle = Sdl2Init::instance();
-  SDL_Window* m_win{};
-  SDL_Renderer* m_rend{};
+    bool fullscreen_impl() const noexcept override {
+        assert(m_win);
+        auto flags = SDL_GetWindowFlags(m_win);
+        return flags & SDL_WINDOW_FULLSCREEN;
+    }
+
+    void render_impl(const media::Frame &frm) override {
+        const AVFrame *avframe = frm.raw();
+        auto sdl_pix_fmt = sdl_detail::av_to_sdl_pixel_fmt(
+            static_cast<AVPixelFormat>(avframe->format));
+        if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
+            sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
+        }
+        std::println("pixel format: {}", SDL_GetPixelFormatName(sdl_pix_fmt));
+        auto *texture =
+            SDL_CreateTexture(m_rend, sdl_pix_fmt, SDL_TEXTUREACCESS_STREAMING,
+                              frm.width(), frm.height());
+        assert(texture);
+        SDL_SetTextureBlendMode(
+            texture, sdl_detail::av_pixel_to_sdl_blend_mode(
+                         static_cast<AVPixelFormat>(avframe->format)));
+        // void *pixels{};
+        // int pitch{};
+        // SDL_LockTexture(texture, nullptr, &pixels, &pitch);
+        // memset(pixels, 0, pitch * frm.height());
+        // SDL_UnlockTexture(texture);
+        if (sdl_pix_fmt == SDL_PIXELFORMAT_IYUV) {
+            if (avframe->linesize[0] > 0 && avframe->linesize[1] > 0 &&
+                avframe->linesize[2] > 0) {
+                SDL_UpdateYUVTexture(texture, nullptr, avframe->data[0],
+                                     avframe->linesize[0], avframe->data[1],
+                                     avframe->linesize[1], avframe->data[2],
+                                     avframe->linesize[2]);
+            } else if (avframe->linesize[0] < 0 && avframe->linesize[1] < 0 &&
+                       avframe->linesize[2] < 0) {
+                SDL_UpdateYUVTexture(
+                    texture, nullptr,
+                    avframe->data[0] +
+                        avframe->linesize[0] * (avframe->height - 1),
+                    -avframe->linesize[0],
+                    avframe->data[1] +
+                        avframe->linesize[1] *
+                            (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
+                    -avframe->linesize[1],
+                    avframe->data[2] +
+                        avframe->linesize[2] *
+                            (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
+                    -avframe->linesize[2]);
+            } else {
+                PLAI_ERR(
+                    "Mixed negative and positive linesizes are not supported");
+            }
+        } else {
+            if (avframe->linesize[0] < 0) {
+                int res = SDL_UpdateTexture(
+                    texture, nullptr,
+                    avframe->data[0] +
+                        avframe->linesize[0] * (avframe->height - 1),
+                    -avframe->linesize[0]);
+                if (res) std::println("failed to update texture 1");
+            } else {
+                int res = SDL_UpdateTexture(texture, nullptr, avframe->data[0],
+                                            avframe->linesize[0]);
+                if (res) std::println("failed to update texture 2");
+            }
+        }
+        auto d = frm.dims();
+        std::println("{}, {}", d.x, d.y);
+        auto rect = sdl_detail::img_rect({600, 400}, {d.x, d.y});
+        SDL_RenderCopy(m_rend, texture, nullptr, &rect);
+        SDL_RenderPresent(m_rend);
+    }
+
+    std::shared_ptr<Sdl2Init> m_init_handle = Sdl2Init::instance();
+    SDL_Window *m_win{};
+    SDL_Renderer *m_rend{};
 };
 
 std::unique_ptr<Window> make_sdl2_window() {
-  return std::make_unique<Sdl2Window>();
+    return std::make_unique<Sdl2Window>();
 }
 }  // namespace plai
