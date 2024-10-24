@@ -32,6 +32,6 @@ Frame::operator bool() const noexcept {
 }
 
 int Frame::width() const noexcept { return m_raw->width; }
-int Frame::height() const noexcept { return m_raw->width; }
+int Frame::height() const noexcept { return m_raw->height; }
 
 }  // namespace plai::media
