@@ -1,0 +1,13 @@
+﻿---
+BasedOnStyle: Google
+AlignConsecutiveMacros: 'true'
+AllowShortBlocksOnASingleLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortLoopsOnASingleLine: 'true'
+AlwaysBreakTemplateDeclarations: 'Yes'
+AccessModifierOffset: -3
+IndentWidth: '4'
+PointerAlignment: Left
+TabWidth: '4'
+
+...
