@@ -10,6 +10,7 @@
 #include <mutex>
 #include <plai/frontend/exceptions.hpp>
 #include <plai/logs/logs.hpp>
+#include <plai/rect.hpp>
 #include <plai/util/array.hpp>
 #include <print>
 #include <thread>
@@ -64,30 +65,14 @@ auto av_pixel_to_sdl_blend_mode(AVPixelFormat in) {
     }
 }
 
-SDL_Rect img_rect(const SDL_Point &window, SDL_Point img) {
-    auto window_rel = double(window.y) / window.x;
-    auto img_rel = double(img.y) / img.x;
-
-    if (img_rel >= window_rel) {
-        // image is "tall" -> require padding horizontally
-        double w = window.y * (double(img.x) / img.y);
-        int padding = double(window.x - w) / 2;
-        return {
-            .x = padding,
-            .y = 0,
-            .w = int(w),
-            .h = window.y,
-        };
-    }
-
-    // image is "wide" -> require padding vertically
-    double h = window.x * (double(img.y) / img.x);
-    int padding = double(window.y - h) / 2;
+SDL_Rect img_rect(const SDL_Point &win, const SDL_Point &img) {
+    auto res =
+        inner_centered_rect(Vec<int>(img.x, img.y), Vec<int>(win.x, win.y));
     return {
-        .x = 0,
-        .y = padding,
-        .w = window.x,
-        .h = int(h),
+        .x = res.x,
+        .y = res.y,
+        .w = res.w,
+        .h = res.h,
     };
 }
 
