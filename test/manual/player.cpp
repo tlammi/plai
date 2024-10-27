@@ -12,29 +12,33 @@ using plai::media::Frame;
 using plai::media::Packet;
 
 int main(int argc, char** argv) {
-  try {
-    if (argc != 2)
-      throw std::runtime_error(std::format("usage: {} path/to/file", argv[0]));
-    plai::logs::init(plai::logs::Level::Trace);
-    auto front = plai::frontend("sdl2").commit();
+    try {
+        if (argc != 2)
+            throw std::runtime_error(
+                std::format("usage: {} path/to/file", argv[0]));
+        plai::logs::init(plai::logs::Level::Trace);
+        auto front = plai::frontend("sdl2");
+        auto text = front->texture1({});
 
-    auto demux = Demux(argv[1]);
-    auto [stream_idx, stream] = demux.best_video_stream();
-    auto decoder = Decoder(stream);
-    Packet pkt{};
-    Frame frm{};
-    while (demux >> pkt) {
-      if (pkt.stream_index() != stream_idx) continue;
-      decoder << pkt;
-      if (!(decoder >> frm)) continue;
-      std::println("decoder size: ({}, {})", decoder.width(), decoder.height());
-      if (!frm.width()) break;
-      front.render(frm);
+        auto demux = Demux(argv[1]);
+        auto [stream_idx, stream] = demux.best_video_stream();
+        auto decoder = Decoder(stream);
+        Packet pkt{};
+        Frame frm{};
+        while (demux >> pkt) {
+            if (pkt.stream_index() != stream_idx) continue;
+            decoder << pkt;
+            if (!(decoder >> frm)) continue;
+            std::println("decoder size: ({}, {})", decoder.width(),
+                         decoder.height());
+            if (!frm.width()) break;
+            text->render_frame(frm);
+            front->render_current();
+        }
+
+    } catch (const std::exception& e) {
+        std::println(stderr, "ERROR: {}", e.what());
+        return EXIT_FAILURE;
     }
-
-  } catch (const std::exception& e) {
-    std::println(stderr, "ERROR: {}", e.what());
-    return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

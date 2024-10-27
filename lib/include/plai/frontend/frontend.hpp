@@ -1,47 +1,45 @@
 #pragma once
 
+#include <plai/frontend/texture.hpp>
 #include <plai/frontend/type.hpp>
 #include <plai/frontend/window.hpp>
-#include <string_view>
 
 namespace plai {
 
+/**
+ * \brief Frontend
+ *
+ * This is what actually displays the window etc.
+ * */
 class Frontend {
  public:
-  explicit Frontend(std::unique_ptr<Window> w) noexcept : m_win(std::move(w)) {}
+    virtual ~Frontend() = default;
 
-  void render(const media::Frame& frm) { m_win->render(frm); }
+    /**
+     * \brief Create a new texture
+     *
+     * Creates a new texture with the given render target options. The same
+     * texture is used for rendering all the targets.
+     * */
+    virtual std::unique_ptr<Texture> texture(
+        std::span<RenderTargetOpts> target_opts) = 0;
 
- private:
-  std::unique_ptr<Window> m_win;
-};
+    /**
+     * \brief Texture with single render target
+     * */
+    std::unique_ptr<Texture> texture1(RenderTargetOpts target_opts) {
+        return texture(std::span(&target_opts, 1));
+    }
 
-class FrontendBuilder {
- public:
-  using Self = FrontendBuilder;
-
-  constexpr FrontendBuilder() noexcept = default;
-  FrontendBuilder(const FrontendBuilder&) = delete;
-  FrontendBuilder& operator=(const FrontendBuilder&) = delete;
-
-  FrontendBuilder(FrontendBuilder&&) noexcept = default;
-  FrontendBuilder& operator=(FrontendBuilder&&) noexcept = default;
-
-  ~FrontendBuilder() = default;
-
-  Self&& set_window(std::unique_ptr<Window> w) && {
-    m_win = std::move(w);
-    return std::move(*this);
-  }
-  Frontend commit() && { return Frontend(std::move(m_win)); }
+    virtual void render_current() = 0;
 
  private:
-  std::unique_ptr<Window> m_win{};
+    std::unique_ptr<Window> m_win;
 };
 
-FrontendBuilder frontend(FrontendType type);
-inline FrontendBuilder frontend(std::string_view nm) {
-  return frontend(frontend_type(nm));
+std::unique_ptr<Frontend> frontend(FrontendType type);
+inline std::unique_ptr<Frontend> frontend(std::string_view nm) {
+    return frontend(frontend_type(nm));
 }
 
 }  // namespace plai
