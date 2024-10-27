@@ -395,14 +395,15 @@ class SdlFrontend final : public Frontend {
     std::unique_ptr<Texture> texture(
         std::span<RenderTargetOpts> target_opts) final {
         auto res = std::make_unique<SdlTexture>(
-            make_texture(m_rend.get(), TextureAccess::Streaming), m_rend.get(),
-            TextureAccess::Streaming);
+            make_texture(m_rend.get(), TextureAccess::Streaming, 1920, 1080),
+            m_rend.get(), TextureAccess::Streaming);
         m_text = res->raw();  // TODO: remove this
         return res;
     }
 
     void render_current() final {
-        SDL_RenderCopy(m_rend.get(), m_text, nullptr, nullptr);
+        static constexpr auto dst = SDL_Rect(0, 0, 600, 400);
+        SDL_RenderCopy(m_rend.get(), m_text, nullptr, &dst);
         SDL_RenderPresent(m_rend.get());
     }
 

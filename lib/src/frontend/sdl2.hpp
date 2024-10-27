@@ -58,7 +58,7 @@ inline auto make_renderer(SDL_Window* win) {
 inline auto make_texture(SDL_Renderer* rend, TextureAccess access, int w = 600,
                          int h = 400) {
     return detail::uniq_with_deleter(
-        SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+        SDL_CreateTexture(rend, SDL_PIXELFORMAT_IYUV,
                           convert_texture_access(access), w, h),
         [](void* t) { SDL_DestroyTexture(static_cast<SDL_Texture*>(t)); });
 }
