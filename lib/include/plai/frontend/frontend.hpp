@@ -21,20 +21,9 @@ class Frontend {
      * Creates a new texture with the given render target options. The same
      * texture is used for rendering all the targets.
      * */
-    virtual std::unique_ptr<Texture> texture(
-        std::span<RenderTargetOpts> target_opts) = 0;
-
-    /**
-     * \brief Texture with single render target
-     * */
-    std::unique_ptr<Texture> texture1(RenderTargetOpts target_opts) {
-        return texture(std::span(&target_opts, 1));
-    }
+    virtual std::unique_ptr<Texture> texture() = 0;
 
     virtual void render_current() = 0;
-
- private:
-    std::unique_ptr<Window> m_win;
 };
 
 std::unique_ptr<Frontend> frontend(FrontendType type);

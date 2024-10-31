@@ -13,7 +13,9 @@ class Texture {
     virtual void blend_mode(BlendMode mode) = 0;
     virtual void alpha(uint8_t alpha) = 0;
     virtual void render_rgb(uint8_t r, uint8_t g, uint8_t b) = 0;
-    virtual void render_frame(const media::Frame& frame) = 0;
+    virtual void update(const media::Frame& frame) = 0;
+
+    virtual void render_to(const RenderTarget& tgt) = 0;
 
  private:
 };

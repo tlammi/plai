@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
                 std::format("usage: {} path/to/file", argv[0]));
         plai::logs::init(plai::logs::Level::Trace);
         auto front = plai::frontend("sdl2");
-        auto text = front->texture1({});
+        auto text = front->texture();
 
         auto demux = Demux(argv[1]);
         auto [stream_idx, stream] = demux.best_video_stream();
@@ -32,7 +32,8 @@ int main(int argc, char** argv) {
             std::println("decoder size: ({}, {})", decoder.width(),
                          decoder.height());
             if (!frm.width()) break;
-            text->render_frame(frm);
+            text->update(frm);
+            text->render_to(plai::RenderTarget{});
             front->render_current();
         }
 

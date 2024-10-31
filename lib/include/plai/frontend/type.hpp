@@ -47,37 +47,18 @@ enum class TextureAccess {
      * */
     Streaming,
 };
-/**
- * \brief Scale texture and keep the aspect ratio
- *
- * Scales the image up or down so one of the dimensions matches the given upper
- * limit and the other one is less than the limit.
- * */
-struct ScaleFit {
-    double max_x = 100.0;  ///< max horizontal size as percent of window width
-    double max_y = 100.0;  ///< max vertical size as percent of window height
+
+enum class Scaling {
+    Fit,
+    Stretch,
 };
 
-/**
- * \brief Scale the image so it fills the given area
- *
- * This deforms the input image so x and y dimensions match the wanted.
- * */
-struct ScaleStretch {
-    double x = 100.0;  ///< horizontal size as percent of window width
-    double y = 100.0;  ///< vertical size as percent of window height
-};
-
-using Scaling = std::variant<ScaleFit, ScaleStretch>;
-
-struct RenderTargetOpts {
-    Scaling scaling{};  ///< How to scale the texture for rendering
-
-    /// Where to place the image horizontally
-    Position pos_x = Position::Middle;
-
-    /// Where to place the image vertically
-    Position pos_y = Position::Middle;
+struct RenderTarget {
+    double w = 1.0;
+    double h = 1.0;
+    Scaling scaling = Scaling::Fit;
+    Position vertical = Position::Begin;
+    Position horizontal = Position::Begin;
 };
 
 constexpr std::string_view frontend_name(FrontendType t) {
