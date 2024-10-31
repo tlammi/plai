@@ -7,4 +7,5 @@ SRCS += files(
   'stream_view.cpp',
   'stream_view_span.cpp',
   'hwaccel.cpp',
+  'frame_converter.cpp',
 )

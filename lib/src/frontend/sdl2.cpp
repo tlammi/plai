@@ -2,8 +2,6 @@
 #include "sdl2.hpp"
 
 #include <SDL2/SDL.h>
-#include <libavutil/common.h>
-#include <libavutil/frame.h>
 #include <libavutil/pixfmt.h>
 
 #include <cassert>
@@ -16,8 +14,14 @@
 #include <thread>
 #include <utility>
 
+#include "SDL_pixels.h"
 #include "SDL_render.h"
 #include "SDL_video.h"
+
+extern "C" {
+#include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
+}
 
 namespace plai::sdl {
 namespace detail {
@@ -49,7 +53,8 @@ constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 19>{
     {AV_PIX_FMT_BGR32_1, SDL_PIXELFORMAT_BGRA8888},
     {AV_PIX_FMT_YUV420P, SDL_PIXELFORMAT_IYUV},
     {AV_PIX_FMT_YUYV422, SDL_PIXELFORMAT_YUY2},
-    {AV_PIX_FMT_UYVY422, SDL_PIXELFORMAT_UYVY}};
+    {AV_PIX_FMT_UYVY422, SDL_PIXELFORMAT_UYVY},
+    /*{AV_PIX_FMT_YUVJ422P, SDL_PIXELFORMAT_YU}*/};
 
 auto av_to_sdl_pixel_fmt(AVPixelFormat in) {
     for (const auto& [av, sdl] : AV_TO_SDL_PIXEL_FMT_MAP) {
@@ -132,6 +137,46 @@ SDL_Rect render_dst_stretched(Position vertical, Position horizontal,
     return {.x = x, .y = y, .w = scaled.x, .h = scaled.y};
 }
 
+void update_texture_with_av_frame(SDL_Texture* text, const AVFrame* frame,
+                                  SDL_PixelFormatEnum sdl_pix_fmt) {
+    if (sdl_pix_fmt == SDL_PIXELFORMAT_IYUV) {
+        if (frame->linesize[0] > 0 && frame->linesize[1] > 0 &&
+            frame->linesize[2] > 0) {
+            SDL_UpdateYUVTexture(text, nullptr, frame->data[0],
+                                 frame->linesize[0], frame->data[1],
+                                 frame->linesize[1], frame->data[2],
+                                 frame->linesize[2]);
+        } else if (frame->linesize[0] < 0 && frame->linesize[1] < 0 &&
+                   frame->linesize[2] < 0) {
+            SDL_UpdateYUVTexture(
+                text, nullptr,
+                frame->data[0] + frame->linesize[0] * (frame->height - 1),
+                -frame->linesize[0],
+                frame->data[1] +
+                    frame->linesize[1] * (AV_CEIL_RSHIFT(frame->height, 1) - 1),
+                -frame->linesize[1],
+                frame->data[2] +
+                    frame->linesize[2] * (AV_CEIL_RSHIFT(frame->height, 1) - 1),
+                -frame->linesize[2]);
+        } else {
+            PLAI_ERR("Mixed negative and positive linesizes are not supported");
+        }
+    } else {
+        if (frame->linesize[0] < 0) {
+            std::println("neg linesize");
+            int res = SDL_UpdateTexture(
+                text, nullptr,
+                frame->data[0] + frame->linesize[0] * (frame->height - 1),
+                -frame->linesize[0]);
+            if (res) std::println("failed to update texture 1");
+        } else {
+            int res = SDL_UpdateTexture(text, nullptr, frame->data[0],
+                                        frame->linesize[0]);
+            if (res) std::println("failed to update texture 2");
+        }
+    }
+}
+
 }  // namespace
 }  // namespace detail
 
@@ -161,58 +206,39 @@ class SdlTexture final : public Texture {
     }
     void update(const media::Frame& frame) final {
         m_dims = frame.dims();
+        std::println("frame size: ({}, {})", m_dims.x, m_dims.y);
         const AVFrame* avframe = frame.raw();
+        auto av_pix_fmt = static_cast<AVPixelFormat>(avframe->format);
+        if (av_pix_fmt == AV_PIX_FMT_YUVJ422P) {
+            SwsContext* sws_ctx = sws_getContext(
+                m_dims.x, m_dims.y, AV_PIX_FMT_YUVJ422P, m_dims.x, m_dims.y,
+                AV_PIX_FMT_YUV420P, SWS_BILINEAR, nullptr, nullptr, nullptr);
+            AVFrame* converted_frame = av_frame_alloc();
+            converted_frame->format = AV_PIX_FMT_YUV420P;
+            converted_frame->width = m_dims.x;
+            converted_frame->height = m_dims.y;
+            av_frame_get_buffer(converted_frame, 0);
+            sws_scale(sws_ctx, (const uint8_t* const*)(avframe->data),
+                      avframe->linesize, 0, m_dims.y, converted_frame->data,
+                      converted_frame->linesize);
+            auto sdl_pix_fmt = detail::av_to_sdl_pixel_fmt(AV_PIX_FMT_YUV420P);
+            if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
+                sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
+            }
+            detail::update_texture_with_av_frame(m_text.get(), converted_frame,
+                                                 sdl_pix_fmt);
+            av_frame_free(&converted_frame);
+            sws_freeContext(sws_ctx);
+            return;
+        }
+
         auto sdl_pix_fmt = detail::av_to_sdl_pixel_fmt(
             static_cast<AVPixelFormat>(avframe->format));
         if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
             sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
         }
-        // void *pixels{};
-        // int pitch{};
-        // SDL_LockTexture(texture, nullptr, &pixels, &pitch);
-        // memset(pixels, 0, pitch * frm.height());
-        // SDL_UnlockTexture(texture);
-        if (sdl_pix_fmt == SDL_PIXELFORMAT_IYUV) {
-            if (avframe->linesize[0] > 0 && avframe->linesize[1] > 0 &&
-                avframe->linesize[2] > 0) {
-                SDL_UpdateYUVTexture(m_text.get(), nullptr, avframe->data[0],
-                                     avframe->linesize[0], avframe->data[1],
-                                     avframe->linesize[1], avframe->data[2],
-                                     avframe->linesize[2]);
-            } else if (avframe->linesize[0] < 0 && avframe->linesize[1] < 0 &&
-                       avframe->linesize[2] < 0) {
-                SDL_UpdateYUVTexture(
-                    m_text.get(), nullptr,
-                    avframe->data[0] +
-                        avframe->linesize[0] * (avframe->height - 1),
-                    -avframe->linesize[0],
-                    avframe->data[1] +
-                        avframe->linesize[1] *
-                            (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
-                    -avframe->linesize[1],
-                    avframe->data[2] +
-                        avframe->linesize[2] *
-                            (AV_CEIL_RSHIFT(avframe->height, 1) - 1),
-                    -avframe->linesize[2]);
-            } else {
-                PLAI_ERR(
-                    "Mixed negative and positive linesizes are not supported");
-            }
-        } else {
-            if (avframe->linesize[0] < 0) {
-                int res = SDL_UpdateTexture(
-                    m_text.get(), nullptr,
-                    avframe->data[0] +
-                        avframe->linesize[0] * (avframe->height - 1),
-                    -avframe->linesize[0]);
-                if (res) std::println("failed to update texture 1");
-            } else {
-                int res =
-                    SDL_UpdateTexture(m_text.get(), nullptr, avframe->data[0],
-                                      avframe->linesize[0]);
-                if (res) std::println("failed to update texture 2");
-            }
-        }
+        detail::update_texture_with_av_frame(m_text.get(), avframe,
+                                             sdl_pix_fmt);
     }
 
     void render_to(const RenderTarget& tgt) override {
@@ -222,6 +248,8 @@ class SdlTexture final : public Texture {
         if (tgt.scaling == Scaling::Fit) {
             auto dst = detail::render_dst_scaled(tgt.vertical, tgt.horizontal,
                                                  m_dims, win_dims, scaling);
+            std::println("rendering ({},{}, {},{})", dst.x, dst.y, dst.w,
+                         dst.h);
             SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
         } else {
             auto dst = detail::render_dst_stretched(

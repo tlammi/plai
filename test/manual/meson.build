@@ -3,7 +3,8 @@ tests = files(
   'pkt_count.cpp',
   'void_decoder.cpp',
   'hwaccel_list.cpp',
-  'player.cpp'
+  'player.cpp',
+  'blend_player.cpp',
 )
 
 fs = import('fs')

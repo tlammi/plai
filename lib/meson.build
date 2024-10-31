@@ -5,6 +5,7 @@ DEPS = [
   dependency('libavcodec', version: '>=61'),
   dependency('libavformat', version: '>=61'),
   dependency('libavutil', version: '>=59'),
+  dependency('libswscale', version: '>=8.1.100'),
   dependency('sdl2', version: '>=2.30'),
 ]
 
