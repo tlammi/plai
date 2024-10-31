@@ -120,6 +120,18 @@ SDL_Rect render_dst_scaled(Position vertical, Position horizontal,
     return {.x = x, .y = y, .w = scaled.x, .h = scaled.y};
 }
 
+SDL_Rect render_dst_stretched(Position vertical, Position horizontal,
+                              Vec<int> win, Vec<double> scaling) {
+    auto scaled = Vec<int>{
+        .x = int(win.x * scaling.x),
+        .y = int(win.y * scaling.y),
+    };
+
+    auto x = render_dst_start(vertical, scaled.x, win.x);
+    auto y = render_dst_start(horizontal, scaled.y, win.y);
+    return {.x = x, .y = y, .w = scaled.x, .h = scaled.y};
+}
+
 }  // namespace
 }  // namespace detail
 
@@ -206,13 +218,16 @@ class SdlTexture final : public Texture {
     void render_to(const RenderTarget& tgt) override {
         Vec<int> win_dims{};
         SDL_GetWindowSize(m_win, &win_dims.x, &win_dims.y);
-
         Vec<double> scaling{tgt.w, tgt.h};
-        auto dst = detail::render_dst_scaled(tgt.vertical, tgt.horizontal,
-                                             m_dims, win_dims, scaling);
-        std::println("rendering to ({}, {}, {}, {})", dst.x, dst.y, dst.w,
-                     dst.h);
-        SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
+        if (tgt.scaling == Scaling::Fit) {
+            auto dst = detail::render_dst_scaled(tgt.vertical, tgt.horizontal,
+                                                 m_dims, win_dims, scaling);
+            SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
+        } else {
+            auto dst = detail::render_dst_stretched(
+                tgt.vertical, tgt.horizontal, win_dims, scaling);
+            SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
+        }
     }
 
     SDL_Texture* raw() const noexcept { return m_text.get(); }
