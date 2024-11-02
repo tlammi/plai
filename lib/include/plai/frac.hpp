@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -56,10 +57,31 @@ class Frac {
         return std::forward<S>(self).m_den;
     }
 
+    constexpr Frac& operator+=(const Frac& other) noexcept {
+        assert(m_den == other.m_den);
+        m_num += other.m_num;
+        return *this;
+    }
+
+    constexpr Frac operator*(const T& scalar) const noexcept {
+        T num = m_num * scalar;
+        T den = m_den;
+        if (!(num % den)) {
+            num /= den;
+            den = 1;
+        }
+        return {num, den};
+    }
+
  private:
     T m_num{};
     T m_den{1};
 };
+
+template <class T>
+constexpr Frac<T> operator*(const T& scalar, const Frac<T>& frac) noexcept {
+    return frac * scalar;
+}
 
 namespace literals {
 constexpr Frac<int64_t> operator""_frac(const char* str, size_t len) {

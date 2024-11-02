@@ -1,5 +1,6 @@
 #pragma once
 
+#include <plai/frac.hpp>
 #include <plai/media/forward.hpp>
 
 namespace plai::media {
@@ -12,15 +13,17 @@ namespace plai::media {
  * */
 class StreamView {
  public:
-  constexpr explicit StreamView(AVStream* raw) noexcept : m_raw(raw) {}
+    constexpr explicit StreamView(AVStream* raw) noexcept : m_raw(raw) {}
 
-  [[nodiscard]] bool video() const noexcept;
-  [[nodiscard]] bool audio() const noexcept;
+    [[nodiscard]] bool video() const noexcept;
+    [[nodiscard]] bool audio() const noexcept;
 
-  constexpr AVStream* raw() noexcept { return m_raw; }
-  constexpr const AVStream* raw() const noexcept { return m_raw; }
+    constexpr AVStream* raw() noexcept { return m_raw; }
+    constexpr const AVStream* raw() const noexcept { return m_raw; }
+
+    Frac<int> fps() const noexcept;
 
  private:
-  AVStream* m_raw;
+    AVStream* m_raw;
 };
 }  // namespace plai::media
