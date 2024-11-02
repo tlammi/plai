@@ -3,6 +3,8 @@ tests = files(
   'decode.cpp',
   'ring_buffer.cpp',
   'frontend.cpp',
+  'parse.cpp',
+  'frac.cpp',
 )
 
 fs = import('fs')
