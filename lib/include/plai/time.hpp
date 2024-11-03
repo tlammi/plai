@@ -9,6 +9,7 @@ namespace plai {
 using Clock = std::chrono::high_resolution_clock;
 using TimePoint = Clock::time_point;
 using Duration = Clock::duration;
+using FloatDuration = std::chrono::duration<double>;
 
 using SystemClock = std::chrono::system_clock;
 using SystemTimePoint = SystemClock::time_point;
