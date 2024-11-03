@@ -5,6 +5,7 @@ tests = files(
   'frontend.cpp',
   'parse.cpp',
   'frac.cpp',
+  'queue.cpp',
 )
 
 fs = import('fs')
