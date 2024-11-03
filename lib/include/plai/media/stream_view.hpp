@@ -13,6 +13,7 @@ namespace plai::media {
  * */
 class StreamView {
  public:
+    constexpr StreamView() noexcept = default;
     constexpr explicit StreamView(AVStream* raw) noexcept : m_raw(raw) {}
 
     [[nodiscard]] bool video() const noexcept;
@@ -24,6 +25,6 @@ class StreamView {
     Frac<int> fps() const noexcept;
 
  private:
-    AVStream* m_raw;
+    AVStream* m_raw{};
 };
 }  // namespace plai::media
