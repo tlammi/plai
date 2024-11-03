@@ -5,6 +5,7 @@ tests = files(
   'hwaccel_list.cpp',
   'player.cpp',
   'blend_player.cpp',
+  'rest.cpp',
 )
 
 fs = import('fs')
