@@ -18,6 +18,11 @@ class Frontend {
 
     /**
      * \brief Poll an event from the frontend
+     *
+     * Returns an event when possible and std::nullopt if no events are
+     * available or the event from the library is not convertible to any
+     * plai::Event types.
+     *
      * */
     virtual std::optional<Event> poll_event() = 0;
 
