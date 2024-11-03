@@ -269,6 +269,18 @@ class SdlTexture final : public Texture {
 
 class SdlFrontend final : public Frontend {
  public:
+    std::optional<Event> poll_event() override {
+        SDL_Event event{};
+        if (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_QUIT: return Quit{};
+                default: {
+                }
+            }
+        }
+        return std::nullopt;
+    }
+
     std::unique_ptr<Texture> texture() final {
         auto res = std::make_unique<SdlTexture>(
             make_texture(m_rend.get(), TextureAccess::Streaming, 1920, 1080),

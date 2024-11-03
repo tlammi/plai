@@ -1,8 +1,9 @@
 #pragma once
 
+#include <memory>
+#include <plai/frontend/events.hpp>
 #include <plai/frontend/texture.hpp>
 #include <plai/frontend/type.hpp>
-#include <plai/frontend/window.hpp>
 
 namespace plai {
 
@@ -14,6 +15,11 @@ namespace plai {
 class Frontend {
  public:
     virtual ~Frontend() = default;
+
+    /**
+     * \brief Poll an event from the frontend
+     * */
+    virtual std::optional<Event> poll_event() = 0;
 
     /**
      * \brief Create a new texture

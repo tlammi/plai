@@ -6,7 +6,6 @@
 #include <plai/frontend/exceptions.hpp>
 #include <plai/frontend/frontend.hpp>
 #include <plai/frontend/type.hpp>
-#include <plai/frontend/window.hpp>
 
 namespace plai::sdl {
 template <class T>

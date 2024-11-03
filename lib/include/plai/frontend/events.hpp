@@ -1,17 +1,15 @@
 #pragma once
 
-#include <cstdint>
-#include <functional>
 #include <plai/vec.hpp>
+#include <variant>
 
 namespace plai {
 
 /**
- * \brief Events from frontend
+ * \brief User requests exit
  * */
-struct FrontendEvents {
-  /// window resize
-  std::function<void(plai::Vec<int32_t>)> on_resize{};
-};
+struct Quit {};
+
+using Event = std::variant<Quit>;
 
 }  // namespace plai
