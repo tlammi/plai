@@ -7,6 +7,7 @@ tests = files(
   'frac.cpp',
   'queue.cpp',
   'prof.cpp',
+  'persist_buffer.cpp',
 )
 
 fs = import('fs')
