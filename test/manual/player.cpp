@@ -7,8 +7,9 @@
 #include <plai/media/decoder.hpp>
 #include <plai/media/demux.hpp>
 #include <plai/media/frame_converter.hpp>
-#include <plai/ring_buffer.hpp>
+#include <plai/persist_buffer.hpp>
 #include <plai/time.hpp>
+#include <plai/util/defer.hpp>
 #include <print>
 #include <thread>
 
@@ -21,8 +22,7 @@ using plai::media::Packet;
 using namespace std::literals::chrono_literals;
 
 void producer(std::stop_token tok, const char* path,
-              plai::RingBuffer<Frame>* buf) {
-    size_t counter = 0;
+              plai::PersistBuffer<Frame>* buf) {
     auto defer = plai::Defer([] { std::println("producer done"); });
     auto demux = Demux(path);
     auto [stream_idx, stream] = demux.best_video_stream();
@@ -33,16 +33,11 @@ void producer(std::stop_token tok, const char* path,
         if (pkt.stream_index() != stream_idx) continue;
         decoder << pkt;
         if (!(decoder >> frm)) continue;
-        std::println("producing");
         auto width = frm.width();
-        buf->emplace(std::exchange(frm, {}));
-        std::println("produced {}, {}", ++counter, width);
-        if (!width) {
-            std::println("was empty");
-            return;
-        }
+        frm = buf->push(std::move(frm));
+        if (!width) { return; }
     }
-    buf->emplace(std::move(frm));
+    buf->push({});
 }
 
 int main(int argc, char** argv) {
@@ -54,7 +49,7 @@ int main(int argc, char** argv) {
         plai::logs::init(plai::logs::Level::Info);
         auto front = plai::frontend("sdl2");
         auto text = front->texture();
-        auto queue = plai::RingBuffer<Frame>(60);
+        auto queue = plai::PersistBuffer<Frame>(60);
         size_t counter = 0;
 
         auto worker = std::jthread(&producer, argv[1], &queue);
@@ -63,6 +58,8 @@ int main(int argc, char** argv) {
         static constexpr auto spf =
             std::chrono::microseconds(int64_t(SPF * 1'000'000));
         auto rate_limiter = plai::RateLimiter(spf);
+        auto f = plai::media::Frame();
+
         while (true) {
             while (true) {
                 auto event = front->poll_event();
@@ -71,19 +68,13 @@ int main(int argc, char** argv) {
                     return EXIT_SUCCESS;
                 }
             }
-            std::println("consuming");
-            auto f = queue.pop();
-            std::println("consumed: {}, {}", ++counter, f.width());
+            f = queue.pop(std::move(f));
             if (!f.width()) return EXIT_SUCCESS;
             text->update(f);
             text->render_to({});
             rate_limiter();
             front->render_current();
         }
-
-    } catch (const std::exception& e) {
-        std::println(stderr, "ERROR: {}", e.what());
-        return EXIT_FAILURE;
-    }
+    } catch (const std::exception& e) { return EXIT_FAILURE; }
     return EXIT_SUCCESS;
 }

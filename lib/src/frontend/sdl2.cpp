@@ -10,10 +10,10 @@
 #include <plai/logs/logs.hpp>
 #include <plai/rect.hpp>
 #include <plai/util/array.hpp>
-#include <print>
 #include <thread>
 #include <utility>
 
+#include "SDL_hints.h"
 #include "SDL_pixels.h"
 #include "SDL_render.h"
 #include "SDL_video.h"
@@ -68,6 +68,7 @@ class Sdl2Init {
 
  public:
     explicit Sdl2Init(Private /*unused*/) {
+        SDL_SetHint(SDL_HINT_VIDEODRIVER, "wayland,x11");
         SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
     }
     ~Sdl2Init() {
@@ -163,16 +164,13 @@ void update_texture_with_av_frame(SDL_Texture* text, const AVFrame* frame,
         }
     } else {
         if (frame->linesize[0] < 0) {
-            std::println("neg linesize");
             int res = SDL_UpdateTexture(
                 text, nullptr,
                 frame->data[0] + frame->linesize[0] * (frame->height - 1),
                 -frame->linesize[0]);
-            if (res) std::println("failed to update texture 1");
         } else {
             int res = SDL_UpdateTexture(text, nullptr, frame->data[0],
                                         frame->linesize[0]);
-            if (res) std::println("failed to update texture 2");
         }
     }
 }
@@ -206,7 +204,6 @@ class SdlTexture final : public Texture {
     }
     void update(const media::Frame& frame) final {
         m_dims = frame.dims();
-        std::println("frame size: ({}, {})", m_dims.x, m_dims.y);
         const AVFrame* avframe = frame.raw();
         auto av_pix_fmt = static_cast<AVPixelFormat>(avframe->format);
         if (av_pix_fmt == AV_PIX_FMT_YUVJ422P) {
@@ -248,8 +245,6 @@ class SdlTexture final : public Texture {
         if (tgt.scaling == Scaling::Fit) {
             auto dst = detail::render_dst_scaled(tgt.vertical, tgt.horizontal,
                                                  m_dims, win_dims, scaling);
-            std::println("rendering ({},{}, {},{})", dst.x, dst.y, dst.w,
-                         dst.h);
             SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
         } else {
             auto dst = detail::render_dst_stretched(
