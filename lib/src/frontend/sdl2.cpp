@@ -34,7 +34,7 @@ struct PixelFmtMapEntry {
     AVPixelFormat av;
     SDL_PixelFormatEnum sdl;
 };
-constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 19>{
+constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 20>{
     PixelFmtMapEntry{AV_PIX_FMT_RGB8, SDL_PIXELFORMAT_RGB332},
     {AV_PIX_FMT_RGB444, SDL_PIXELFORMAT_RGB444},
     {AV_PIX_FMT_RGB555, SDL_PIXELFORMAT_RGB555},
@@ -51,6 +51,7 @@ constexpr auto AV_TO_SDL_PIXEL_FMT_MAP = std::array<PixelFmtMapEntry, 19>{
     {AV_PIX_FMT_RGB32_1, SDL_PIXELFORMAT_RGBA8888},
     {AV_PIX_FMT_BGR32, SDL_PIXELFORMAT_ABGR8888},
     {AV_PIX_FMT_BGR32_1, SDL_PIXELFORMAT_BGRA8888},
+    {AV_PIX_FMT_YUV422P, SDL_PIXELFORMAT_IYUV},
     {AV_PIX_FMT_YUV420P, SDL_PIXELFORMAT_IYUV},
     {AV_PIX_FMT_YUYV422, SDL_PIXELFORMAT_YUY2},
     {AV_PIX_FMT_UYVY422, SDL_PIXELFORMAT_UYVY},
@@ -205,6 +206,7 @@ class SdlTexture final : public Texture {
     void update(const media::Frame& frame) final {
         m_dims = frame.dims();
         const AVFrame* avframe = frame.raw();
+        /*
         auto av_pix_fmt = static_cast<AVPixelFormat>(avframe->format);
         if (av_pix_fmt == AV_PIX_FMT_YUVJ422P) {
             SwsContext* sws_ctx = sws_getContext(
@@ -228,6 +230,7 @@ class SdlTexture final : public Texture {
             sws_freeContext(sws_ctx);
             return;
         }
+        */
 
         auto sdl_pix_fmt = detail::av_to_sdl_pixel_fmt(
             static_cast<AVPixelFormat>(avframe->format));

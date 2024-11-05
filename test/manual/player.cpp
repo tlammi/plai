@@ -29,11 +29,13 @@ void producer(std::stop_token tok, const char* path,
     auto decoder = Decoder(stream);
     auto pkt = Packet();
     auto frm = Frame();
+    auto converter = plai::media::FrameConverter();
     while (!tok.stop_requested() && (demux >> pkt)) {
         if (pkt.stream_index() != stream_idx) continue;
         decoder << pkt;
         if (!(decoder >> frm)) continue;
         auto width = frm.width();
+        if (width > 1920) { frm = converter({1920, 1080}, frm); }
         frm = buf->push(std::move(frm));
         if (!width) { return; }
     }
@@ -69,11 +71,17 @@ int main(int argc, char** argv) {
                 }
             }
             f = queue.pop(std::move(f));
-            if (!f.width()) return EXIT_SUCCESS;
+            if (!f.width()) {
+                if (counter == 1) {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+                return EXIT_SUCCESS;
+            }
             text->update(f);
             text->render_to({});
             rate_limiter();
             front->render_current();
+            ++counter;
         }
     } catch (const std::exception& e) { return EXIT_FAILURE; }
     return EXIT_SUCCESS;
