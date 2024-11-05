@@ -10,7 +10,6 @@
 #include <plai/logs/logs.hpp>
 #include <plai/rect.hpp>
 #include <plai/util/array.hpp>
-#include <thread>
 #include <utility>
 
 #include "SDL_hints.h"
@@ -165,13 +164,13 @@ void update_texture_with_av_frame(SDL_Texture* text, const AVFrame* frame,
         }
     } else {
         if (frame->linesize[0] < 0) {
-            int res = SDL_UpdateTexture(
+            SDL_CHECK(SDL_UpdateTexture(
                 text, nullptr,
                 frame->data[0] + frame->linesize[0] * (frame->height - 1),
-                -frame->linesize[0]);
+                -frame->linesize[0]));
         } else {
-            int res = SDL_UpdateTexture(text, nullptr, frame->data[0],
-                                        frame->linesize[0]);
+            SDL_CHECK(SDL_UpdateTexture(text, nullptr, frame->data[0],
+                                        frame->linesize[0]));
         }
     }
 }
@@ -206,32 +205,6 @@ class SdlTexture final : public Texture {
     void update(const media::Frame& frame) final {
         m_dims = frame.dims();
         const AVFrame* avframe = frame.raw();
-        /*
-        auto av_pix_fmt = static_cast<AVPixelFormat>(avframe->format);
-        if (av_pix_fmt == AV_PIX_FMT_YUVJ422P) {
-            SwsContext* sws_ctx = sws_getContext(
-                m_dims.x, m_dims.y, AV_PIX_FMT_YUVJ422P, m_dims.x, m_dims.y,
-                AV_PIX_FMT_YUV420P, SWS_BILINEAR, nullptr, nullptr, nullptr);
-            AVFrame* converted_frame = av_frame_alloc();
-            converted_frame->format = AV_PIX_FMT_YUV420P;
-            converted_frame->width = m_dims.x;
-            converted_frame->height = m_dims.y;
-            av_frame_get_buffer(converted_frame, 0);
-            sws_scale(sws_ctx, (const uint8_t* const*)(avframe->data),
-                      avframe->linesize, 0, m_dims.y, converted_frame->data,
-                      converted_frame->linesize);
-            auto sdl_pix_fmt = detail::av_to_sdl_pixel_fmt(AV_PIX_FMT_YUV420P);
-            if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
-                sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
-            }
-            detail::update_texture_with_av_frame(m_text.get(), converted_frame,
-                                                 sdl_pix_fmt);
-            av_frame_free(&converted_frame);
-            sws_freeContext(sws_ctx);
-            return;
-        }
-        */
-
         auto sdl_pix_fmt = detail::av_to_sdl_pixel_fmt(
             static_cast<AVPixelFormat>(avframe->format));
         if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
