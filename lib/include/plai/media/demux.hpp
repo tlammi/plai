@@ -17,51 +17,58 @@ namespace stdfs = std::filesystem;
  * */
 class Demux {
  public:
-  Demux();
-  constexpr explicit Demux(AVFormatContext* ctx) noexcept : m_ctx(ctx) {}
+    Demux();
+    constexpr explicit Demux(AVFormatContext* ctx) noexcept : m_ctx(ctx) {}
 
-  explicit Demux(std::span<const uint8_t> buf);
-  explicit Demux(const stdfs::path& src);
+    /**
+     * \brief Demultiplex a file
+     * */
+    explicit Demux(std::span<const uint8_t> buf);
 
-  Demux(const Demux&) = delete;
-  Demux& operator=(const Demux&) = delete;
+    /**
+     * \brief Create a demux targeting a file
+     * */
+    explicit Demux(const stdfs::path& src);
 
-  Demux(Demux&& other) noexcept;
-  Demux& operator=(Demux&& other) noexcept;
+    Demux(const Demux&) = delete;
+    Demux& operator=(const Demux&) = delete;
 
-  ~Demux();
+    Demux(Demux&& other) noexcept;
+    Demux& operator=(Demux&& other) noexcept;
 
-  /**
-   * \brief Read the next packet
-   *
-   * Packet is a bundle of data read from the media. Use pkt.stream to check
-   * into which stream the packet belongs to.
-   *
-   * \return True on success and false on end-of-stream. If false is returned
-   * the resulting packet is empty.
-   * */
-  bool operator>>(Packet& pkt);
+    ~Demux();
 
-  StreamViewSpan streams() noexcept;
+    /**
+     * \brief Read the next packet
+     *
+     * Packet is a bundle of data read from the media. Use pkt.stream to check
+     * into which stream the packet belongs to.
+     *
+     * \return True on success and false on end-of-stream. If false is returned
+     * the resulting packet is empty.
+     * */
+    bool operator>>(Packet& pkt);
 
-  std::pair<std::size_t, StreamView> best_video_stream();
+    StreamViewSpan streams() noexcept;
+
+    std::pair<std::size_t, StreamView> best_video_stream();
 
  private:
-  /**
-   * \brief Callback for FFmpeg when reading from in-memory buffer
-   * */
-  static int buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept;
+    /**
+     * \brief Callback for FFmpeg when reading from in-memory buffer
+     * */
+    static int buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept;
 
-  /**
-   * \brief Callback for FFmpeg when reading from in-memory buffer
-   * */
-  static int64_t buffer_seek(void* userdata, int64_t offset,
-                             int whence) noexcept;
+    /**
+     * \brief Callback for FFmpeg when reading from in-memory buffer
+     * */
+    static int64_t buffer_seek(void* userdata, int64_t offset,
+                               int whence) noexcept;
 
-  // only used if a buffer is passed via constructor
-  std::span<const uint8_t> m_buf{};
-  size_t m_buf_offset{};
-  AVFormatContext* m_ctx;
-  AVIOContext* m_io_ctx{};
+    // only used if a buffer is passed via constructor
+    std::span<const uint8_t> m_buf{};
+    size_t m_buf_offset{};
+    AVFormatContext* m_ctx;
+    AVIOContext* m_io_ctx{};
 };
 }  // namespace plai::media
