@@ -181,8 +181,12 @@ void update_texture_with_av_frame(SDL_Texture* text, const AVFrame* frame,
 class SdlTexture final : public Texture {
  public:
     explicit SdlTexture(UniqPtr<SDL_Texture> text, SDL_Renderer* rend,
-                        SDL_Window* win, TextureAccess access)
-        : m_text(std::move(text)), m_rend(rend), m_win(win) {
+                        SDL_Window* win, TextureAccess access,
+                        SDL_PixelFormatEnum pix_fmt)
+        : m_text(std::move(text)),
+          m_rend(rend),
+          m_win(win),
+          m_pix_fmt(pix_fmt) {
         if (access == TextureAccess::Streaming) {
             [[maybe_unused]] void* pixels{};
             [[maybe_unused]] int pitch{};
@@ -210,6 +214,11 @@ class SdlTexture final : public Texture {
         if (sdl_pix_fmt == SDL_PIXELFORMAT_UNKNOWN) {
             sdl_pix_fmt = SDL_PIXELFORMAT_ARGB8888;
         }
+        if (sdl_pix_fmt != m_pix_fmt) {
+            m_text = make_texture(m_rend, plai::TextureAccess::Streaming,
+                                  m_dims.x, m_dims.y, sdl_pix_fmt);
+            m_pix_fmt = sdl_pix_fmt;
+        }
         detail::update_texture_with_av_frame(m_text.get(), avframe,
                                              sdl_pix_fmt);
     }
@@ -235,6 +244,7 @@ class SdlTexture final : public Texture {
     UniqPtr<SDL_Texture> m_text;
     SDL_Renderer* m_rend;
     SDL_Window* m_win;
+    SDL_PixelFormatEnum m_pix_fmt;
     Vec<int> m_dims{};
 };
 
@@ -254,8 +264,10 @@ class SdlFrontend final : public Frontend {
 
     std::unique_ptr<Texture> texture() final {
         auto res = std::make_unique<SdlTexture>(
-            make_texture(m_rend.get(), TextureAccess::Streaming, 1920, 1080),
-            m_rend.get(), m_win.get(), TextureAccess::Streaming);
+            make_texture(m_rend.get(), TextureAccess::Streaming, 1920, 1080,
+                         SDL_PIXELFORMAT_IYUV),
+            m_rend.get(), m_win.get(), TextureAccess::Streaming,
+            SDL_PIXELFORMAT_IYUV);
         m_text = res->raw();  // TODO: remove this
         return res;
     }
@@ -271,6 +283,13 @@ class SdlFrontend final : public Frontend {
 
 std::unique_ptr<Frontend> sdl_frontend() {
     return std::make_unique<SdlFrontend>();
+}
+
+UniqPtr<SDL_Texture> make_texture(SDL_Renderer* rend, TextureAccess access,
+                                  int w, int h, SDL_PixelFormatEnum fmt) {
+    return detail::uniq_with_deleter(
+        SDL_CreateTexture(rend, fmt, convert_texture_access(access), w, h),
+        [](void* t) { SDL_DestroyTexture(static_cast<SDL_Texture*>(t)); });
 }
 
 }  // namespace plai::sdl

@@ -54,13 +54,8 @@ inline auto make_renderer(SDL_Window* win) {
         [](void* r) { SDL_DestroyRenderer(static_cast<SDL_Renderer*>(r)); });
 }
 
-inline auto make_texture(SDL_Renderer* rend, TextureAccess access, int w = 600,
-                         int h = 400) {
-    return detail::uniq_with_deleter(
-        SDL_CreateTexture(rend, SDL_PIXELFORMAT_IYUV,
-                          convert_texture_access(access), w, h),
-        [](void* t) { SDL_DestroyTexture(static_cast<SDL_Texture*>(t)); });
-}
+UniqPtr<SDL_Texture> make_texture(SDL_Renderer* rend, TextureAccess access,
+                                  int w, int h, SDL_PixelFormatEnum fmt);
 
 std::unique_ptr<Frontend> sdl_frontend();
 

@@ -28,13 +28,14 @@ Demux::Demux(std::span<const uint8_t> buf)
     : m_buf(buf), m_ctx(avformat_alloc_context()) {
     if (!m_ctx) throw std::bad_alloc();
 
-    void* iobuf = av_malloc(demux_detail::AV_IO_BUFFER_SIZE);
+    void* iobuf = av_malloc(demux_detail::AV_IO_BUFFER_SIZE +
+                            AV_INPUT_BUFFER_PADDING_SIZE);
     auto clean_iobuf = Defer([&] { av_free(iobuf); });
     if (!iobuf) throw std::bad_alloc();
 
     m_io_ctx = avio_alloc_context(
         reinterpret_cast<uint8_t*>(iobuf), demux_detail::AV_IO_BUFFER_SIZE, 0,
-        this, &Demux::buffer_read, nullptr, /*&Demux::buffer_seek*/ nullptr);
+        this, &Demux::buffer_read, nullptr, &Demux::buffer_seek);
     if (!m_io_ctx) throw std::bad_alloc();
     m_ctx->pb = m_io_ctx;
     // some one made a nice design decision and avformat_free_context() frees
@@ -83,9 +84,7 @@ Demux::~Demux() {
 
 bool Demux::operator>>(Packet& pkt) {
     av_packet_unref(pkt.raw());
-    std::println("reading frame");
     int res = av_read_frame(m_ctx, pkt.raw());
-    std::println("read frame");
     if (res == 0) return true;
     if (res == AVERROR_EOF) return false;
     throw AVException(res);
@@ -111,9 +110,10 @@ int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
     size_t left_in_buf = self->m_buf.size() - self->m_buf_offset;
     if (!left_in_buf) {
         PLAI_TRACE("end-of-file");
-        return 0;
+        return AVERROR_EOF;
     }
     auto count = std::min(buflen, static_cast<int>(left_in_buf));
+    auto spn = self->m_buf.subspan(self->m_buf_offset, count);
     std::memcpy(buf, &self->m_buf[self->m_buf_offset], count);
     self->m_buf_offset += count;
     PLAI_TRACE("read {} bytes", count);
@@ -121,23 +121,30 @@ int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
 }
 
 int64_t Demux::buffer_seek(void* userdata, int64_t offset,
-                           int whence) noexcept {
+                           int origin) noexcept {
     Demux* self = static_cast<Demux*>(userdata);
-    PLAI_TRACE("seek offset: {}, {}", self->m_buf_offset, whence);
-    switch (whence) {
+    PLAI_TRACE("seek offset: current_offset={}, new_offset={}, origin={}",
+               self->m_buf_offset, offset, origin);
+    switch (origin) {
         case SEEK_SET:
             if (offset < 0) return -1;
             if (static_cast<size_t>(offset) > self->m_buf.size()) return -1;
             self->m_buf_offset = offset;
             return 0;
-        case SEEK_CUR: return -1; break;
-        case SEEK_END:
-            if (offset >= 0) return -1;
-            if (static_cast<size_t>(-1 * offset) > self->m_buf.size())
+        case SEEK_CUR: {
+            auto new_idx = static_cast<int64_t>(self->m_buf_offset) + offset;
+            if (new_idx < 0 ||
+                static_cast<uint64_t>(new_idx) >= self->m_buf.size())
                 return -1;
             self->m_buf_offset += offset;
             return 0;
-            break;
+        }
+        case SEEK_END:
+            if (offset > 0) return -1;
+            if (offset >= static_cast<int64_t>(self->m_buf.size())) return -1;
+            self->m_buf_offset += offset;
+            PLAI_TRACE("new offset: {}", self->m_buf_offset);
+            return 0;
         default: return -1;
     }
 }

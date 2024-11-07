@@ -10,6 +10,10 @@ extern "C" {
 namespace plai::media {
 namespace {
 
+/**
+ * Convert deprecated YUVJ pixel format to standard YUV (+ adjust colorspace
+ * later)
+ * */
 AVPixelFormat intermediate_pixel_fmt(AVPixelFormat in) {
     switch (in) {
         case AV_PIX_FMT_YUVJ420P: return AV_PIX_FMT_YUV420P;
@@ -20,6 +24,7 @@ AVPixelFormat intermediate_pixel_fmt(AVPixelFormat in) {
     }
 }
 
+/// Adjust colorspace after switching from YUVJ to YUV
 void adjust_colorspace(SwsContext* ctx) {
     int src_range{};
     int dst_range{};

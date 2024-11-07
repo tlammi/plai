@@ -8,4 +8,5 @@ SRCS += files(
   'stream_view_span.cpp',
   'hwaccel.cpp',
   'frame_converter.cpp',
+  'pipeline.cpp',
 )
