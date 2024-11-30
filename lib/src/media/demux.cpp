@@ -105,8 +105,8 @@ std::pair<std::size_t, StreamView> Demux::best_video_stream() {
 int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
     Demux* self = static_cast<Demux*>(userdata);
     assert(self->m_buf_offset <= self->m_buf.size());
-    PLAI_TRACE("size: {}", self->m_buf.size());
-    PLAI_TRACE("offset: {}", self->m_buf_offset);
+    PLAI_TRACE("buffer_read: size: {}, offset: {}", self->m_buf.size(),
+               self->m_buf_offset);
     size_t left_in_buf = self->m_buf.size() - self->m_buf_offset;
     if (!left_in_buf) {
         PLAI_TRACE("end-of-file");
@@ -125,13 +125,19 @@ int64_t Demux::buffer_seek(void* userdata, int64_t offset,
     Demux* self = static_cast<Demux*>(userdata);
     PLAI_TRACE("seek offset: current_offset={}, new_offset={}, origin={}",
                self->m_buf_offset, offset, origin);
+    if (origin & AVSEEK_SIZE) {
+        return static_cast<int64_t>(self->m_buf.size());
+    }
     switch (origin) {
-        case SEEK_SET:
+        case SEEK_SET: {  // 0
+            PLAI_TRACE("SEEK_SET");
             if (offset < 0) return -1;
             if (static_cast<size_t>(offset) > self->m_buf.size()) return -1;
             self->m_buf_offset = offset;
             return 0;
-        case SEEK_CUR: {
+        }
+        case SEEK_CUR: {  // 1
+            PLAI_TRACE("SEEK_CUR");
             auto new_idx = static_cast<int64_t>(self->m_buf_offset) + offset;
             if (new_idx < 0 ||
                 static_cast<uint64_t>(new_idx) >= self->m_buf.size())
@@ -139,12 +145,14 @@ int64_t Demux::buffer_seek(void* userdata, int64_t offset,
             self->m_buf_offset += offset;
             return 0;
         }
-        case SEEK_END:
+        case SEEK_END: {  // 2
+            PLAI_TRACE("SEEK_END");
             if (offset > 0) return -1;
-            if (offset >= static_cast<int64_t>(self->m_buf.size())) return -1;
-            self->m_buf_offset += offset;
+            if (-offset >= static_cast<int64_t>(self->m_buf.size())) return -1;
+            self->m_buf_offset = self->m_buf.size() + offset;
             PLAI_TRACE("new offset: {}", self->m_buf_offset);
             return 0;
+        }
         default: return -1;
     }
 }
