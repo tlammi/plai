@@ -43,6 +43,9 @@ class PersistBuffer {
         return m_buf.size();
     }
 
+    /**
+     * \brief Push a new value to a buffer and return the replaced value
+     * */
     T push(T replace) {
         auto lk = std::unique_lock(m_mut);
         m_space.wait(lk, [&] { return m_count < m_buf.size(); });
@@ -54,6 +57,10 @@ class PersistBuffer {
         return res;
     }
 
+    /**
+     * \brief Pop a value from a buffer replacing the object with the given
+     * value
+     * */
     T pop(T replace) {
         auto lk = std::unique_lock(m_mut);
         m_data.wait(lk, [&] { return m_count > 0; });

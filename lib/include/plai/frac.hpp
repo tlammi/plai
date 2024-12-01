@@ -45,6 +45,8 @@ class Frac {
         return static_cast<F>(m_num) / static_cast<F>(m_den);
     }
 
+    constexpr bool is_nan() const noexcept { return !m_den; }
+
     constexpr Frac reciprocal() const noexcept { return {m_den, m_num}; }
 
     template <class S>

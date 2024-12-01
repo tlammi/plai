@@ -8,6 +8,7 @@ tests = files(
   'queue.cpp',
   'prof.cpp',
   'persist_buffer.cpp',
+  'frame.cpp',
 )
 
 fs = import('fs')

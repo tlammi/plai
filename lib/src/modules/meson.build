@@ -1,1 +1,0 @@
-SRCS += files('decoder.cpp')
