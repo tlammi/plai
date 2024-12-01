@@ -1,3 +1,4 @@
+#include <plai/logs/logs.hpp>
 #include <plai/media/decoder.hpp>
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/media/demux.hpp>
@@ -39,6 +40,7 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto pkt = Packet();
         auto frm = Frame();
         auto converted_frame = Frame();
+        size_t decoded_frames = 0;
         while (!tok.stop_requested() && demux >> pkt) {
             decoder << pkt;
             if (!(decoder >> frm)) continue;
@@ -50,7 +52,9 @@ void DecodingPipeline::work(std::stop_token tok) {
             } else {
                 frm = m_buf.push(std::move(frm));
             }
+            ++decoded_frames;
         }
+        PLAI_DEBUG("decoded total {} frames", decoded_frames);
         // end of stream
         m_buf.push(Frame());
     }
