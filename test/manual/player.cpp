@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
 
     auto pline = plai::media::DecodingPipeline();
     auto data = plai::fs::read_bin(argv[1]);
+    pline.set_dims({1920, 1080});
     pline.decode(std::move(data));
     auto stream = pline.frame_stream();
     auto front = plai::frontend("sdl2");
@@ -32,6 +33,7 @@ int main(int argc, char** argv) {
     auto dur = std::chrono::microseconds(
         static_cast<uint64_t>(1'000'000 / static_cast<double>(fps)));
     auto sleeper = plai::RateLimiter(dur);
+    size_t frame_counter = 0;
     for (const auto& frm : stream) {
         while (true) {
             auto event = front->poll_event();
@@ -43,6 +45,10 @@ int main(int argc, char** argv) {
         text->update(frm);
         text->render_to({});
         front->render_current();
+        std::this_thread::sleep_for(1s);
         sleeper();
+        ++frame_counter;
     }
+    std::println("frame counter: {}", frame_counter);
+    if (frame_counter == 1) { std::this_thread::sleep_for(3s); }
 }

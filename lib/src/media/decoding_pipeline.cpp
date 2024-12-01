@@ -38,10 +38,18 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto decoder = Decoder(stream);
         auto pkt = Packet();
         auto frm = Frame();
+        auto converted_frame = Frame();
         while (!tok.stop_requested() && demux >> pkt) {
             decoder << pkt;
             if (!(decoder >> frm)) continue;
-            frm = m_buf.push(std::move(frm));
+            if (m_dims) {
+                converted_frame =
+                    m_conv(m_dims, frm, std::move(converted_frame));
+                converted_frame = m_buf.push(std::move(converted_frame));
+                std::swap(frm, converted_frame);
+            } else {
+                frm = m_buf.push(std::move(frm));
+            }
         }
         // end of stream
         m_buf.push(Frame());

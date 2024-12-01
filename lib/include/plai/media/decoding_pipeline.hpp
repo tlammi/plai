@@ -3,6 +3,7 @@
 #include <deque>
 #include <plai/media/decoding_stream.hpp>
 #include <plai/media/frame.hpp>
+#include <plai/media/frame_converter.hpp>
 #include <plai/persist_buffer.hpp>
 #include <plai/queue.hpp>
 #include <thread>
@@ -35,7 +36,10 @@ class DecodingPipeline {
      * the frame resolution so less work needs to be done. Set to {0, 0}
      * to disable the optimization
      * */
-    void set_dims(Frac<int> dims);
+    void set_dims(Vec<int> dims) noexcept {
+        std::unique_lock lk{m_mut};
+        m_dims = dims;
+    }
 
  private:
     void work(std::stop_token tok);
@@ -45,6 +49,8 @@ class DecodingPipeline {
     std::condition_variable m_cv{};
     std::deque<Media> m_medias{};
     Queue<Frac<int>> m_framerates{};
+    Vec<int> m_dims{};
+    FrameConverter m_conv{};
     std::jthread m_worker{[&](std::stop_token tok) { work(tok); }};
 };
 }  // namespace plai::media
