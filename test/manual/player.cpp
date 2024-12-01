@@ -28,6 +28,10 @@ int main(int argc, char** argv) {
     auto stream = pline.frame_stream();
     auto front = plai::frontend("sdl2");
     auto text = front->texture();
+    auto fps = stream.fps();
+    auto dur = std::chrono::microseconds(
+        static_cast<uint64_t>(1'000'000 / static_cast<double>(fps)));
+    auto sleeper = plai::RateLimiter(dur);
     for (const auto& frm : stream) {
         while (true) {
             auto event = front->poll_event();
@@ -39,6 +43,6 @@ int main(int argc, char** argv) {
         text->update(frm);
         text->render_to({});
         front->render_current();
-        std::this_thread::sleep_for(10ms);
+        sleeper();
     }
 }

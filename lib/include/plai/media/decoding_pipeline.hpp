@@ -4,6 +4,7 @@
 #include <plai/media/decoding_stream.hpp>
 #include <plai/media/frame.hpp>
 #include <plai/persist_buffer.hpp>
+#include <plai/queue.hpp>
 #include <thread>
 #include <vector>
 
@@ -43,6 +44,7 @@ class DecodingPipeline {
     std::mutex m_mut{};
     std::condition_variable m_cv{};
     std::deque<Media> m_medias{};
+    Queue<Frac<int>> m_framerates{};
     std::jthread m_worker{[&](std::stop_token tok) { work(tok); }};
 };
 }  // namespace plai::media

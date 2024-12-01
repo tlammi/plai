@@ -5,7 +5,6 @@ tests = files(
   'frontend.cpp',
   'parse.cpp',
   'frac.cpp',
-  'queue.cpp',
   'prof.cpp',
   'persist_buffer.cpp',
   'frame.cpp',

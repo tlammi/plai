@@ -9,7 +9,9 @@ DecodingPipeline::~DecodingPipeline() {
     m_worker.join();
 }
 
-DecodingStream DecodingPipeline::frame_stream() { return {&m_buf, {0, 0}}; }
+DecodingStream DecodingPipeline::frame_stream() {
+    return {&m_buf, m_framerates.pop()};
+}
 
 void DecodingPipeline::decode(std::vector<uint8_t> data) {
     {
@@ -30,6 +32,9 @@ void DecodingPipeline::work(std::stop_token tok) {
         lk.unlock();
         auto demux = Demux(media);
         auto [stream_idx, stream] = demux.best_video_stream();
+        lk.lock();
+        m_framerates.push(stream.fps());
+        lk.unlock();
         auto decoder = Decoder(stream);
         auto pkt = Packet();
         auto frm = Frame();
