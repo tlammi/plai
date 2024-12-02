@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
         pline.decode(argv[i]);
     }
     auto front = plai::frontend("sdl2");
+    auto prev_frm = plai::media::Frame();
     for (size_t i = 1; i < argc; ++i) {
         auto stream = pline.frame_stream();
         auto text = front->texture();
@@ -47,13 +48,13 @@ int main(int argc, char** argv) {
         size_t frame_counter = 0;
 
         auto mode = i > 1 ? Mode::SetupBlend : Mode::Play;
-        static constexpr uint8_t alpha_delta = 2;
+        static constexpr uint8_t alpha_delta = 10;
         static constexpr uint8_t alpha_max =
             std::numeric_limits<uint8_t>::max();
         uint8_t alpha = 0;
         auto iter = stream.begin();
         while (iter != stream.end()) {
-            const auto& frm = *iter;
+            auto& frm = *iter;
             while (true) {
                 auto event = front->poll_event();
                 if (!event) break;
@@ -65,11 +66,13 @@ int main(int argc, char** argv) {
             switch (mode) {
                 case SetupBlend: {
                     std::println("blend setup");
-                    std::swap(fading_text, text);
-                    text->blend_mode(plai::BlendMode::Blend);
+                    fading_text->update(prev_frm);
                     text->update(frm);
                     fading_text->blend_mode(plai::BlendMode::Blend);
                     fading_text->alpha(alpha_max);
+                    text->blend_mode(plai::BlendMode::Blend);
+                    text->update(frm);
+                    text->alpha(0);
                     mode = Blend;
                     break;
                 }
@@ -105,6 +108,7 @@ int main(int argc, char** argv) {
                     front->render_current();
                     sleeper();
                     ++frame_counter;
+                    std::swap(prev_frm, frm);
                     ++iter;
                     std::println("frame counter: {}", frame_counter);
                     // remove hack, should only extract one frame from JPEG
