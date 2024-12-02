@@ -21,29 +21,28 @@ class DecodingStream {
         using value_type = Frame;
         using difference_type = std::ptrdiff_t;
 
-        bool operator==(Sentinel /*unused*/) const noexcept {
-            return m_curr.width() == 0;
-        }
+        bool operator==(Sentinel /*unused*/) const noexcept { return !m_curr; }
         constexpr bool operator!=(Sentinel s) const noexcept {
             return !(*this == s);
         }
 
         Iter& operator++() {
-            m_curr = m_buf->pop(std::move(m_curr));
+            m_curr = m_buf->pop(std::move(*m_curr));
+            if (!m_curr->width()) m_curr.reset();
             return *this;
         }
 
         void operator++(int) { ++*this; }
 
-        const Frame& operator*() const noexcept { return m_curr; }
+        Frame& operator*() const noexcept { return *m_curr; }
 
-        const Frame* operator->() const noexcept { return &m_curr; }
+        Frame* operator->() const noexcept { return &*m_curr; }
 
      private:
         explicit Iter(PersistBuffer<Frame>* buf)
             : m_buf(buf), m_curr(m_buf->pop(Frame())) {}
         PersistBuffer<Frame>* m_buf;
-        Frame m_curr{};
+        mutable std::optional<Frame> m_curr{};
     };
 
     static_assert(std::input_iterator<Iter>);
