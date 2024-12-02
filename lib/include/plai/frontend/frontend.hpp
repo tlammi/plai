@@ -26,6 +26,9 @@ class Frontend {
      * */
     virtual std::optional<Event> poll_event() = 0;
 
+    // TODO: make pure virtual
+    virtual void render_clear() {}
+
     /**
      * \brief Create a new texture
      *

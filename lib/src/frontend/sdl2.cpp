@@ -262,6 +262,8 @@ class SdlFrontend final : public Frontend {
         return std::nullopt;
     }
 
+    void render_clear() final { SDL_RenderClear(m_rend.get()); }
+
     std::unique_ptr<Texture> texture() final {
         auto res = std::make_unique<SdlTexture>(
             make_texture(m_rend.get(), TextureAccess::Streaming, 1920, 1080,
