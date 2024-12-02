@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <filesystem>
 #include <plai/media/decoding_stream.hpp>
 #include <plai/media/frame.hpp>
 #include <plai/media/frame_converter.hpp>
@@ -11,9 +12,11 @@
 
 namespace plai::media {
 
+namespace stdfs = std::filesystem;
+
 class DecodingPipeline {
  public:
-    using Media = std::vector<uint8_t>;
+    using Media = std::variant<std::vector<uint8_t>, stdfs::path>;
     static constexpr size_t BUFFER_SIZE = 1024;
     DecodingPipeline() = default;
 
@@ -28,6 +31,7 @@ class DecodingPipeline {
     DecodingStream frame_stream();
 
     void decode(std::vector<uint8_t> data);
+    void decode(stdfs::path path);
 
     /**
      * \brief Set target dimensions

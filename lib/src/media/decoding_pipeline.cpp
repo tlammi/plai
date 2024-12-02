@@ -2,8 +2,15 @@
 #include <plai/media/decoder.hpp>
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/media/demux.hpp>
+#include <plai/util/match.hpp>
 
 namespace plai::media {
+namespace {
+auto demux_from_media(DecodingPipeline::Media& m) {
+    return match(std::move(m),
+                 [](auto&& arg) { return Demux(std::move(arg)); });
+}
+}  // namespace
 DecodingPipeline::~DecodingPipeline() {
     m_worker.request_stop();
     m_cv.notify_one();
@@ -17,7 +24,14 @@ DecodingStream DecodingPipeline::frame_stream() {
 void DecodingPipeline::decode(std::vector<uint8_t> data) {
     {
         std::unique_lock lk{m_mut};
-        m_medias.push_back(std::move(data));
+        m_medias.emplace_back(std::move(data));
+    }
+    m_cv.notify_one();
+}
+void DecodingPipeline::decode(stdfs::path path) {
+    {
+        std::unique_lock lk{m_mut};
+        m_medias.emplace_back(std::move(path));
     }
     m_cv.notify_one();
 }
@@ -31,7 +45,7 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto media = std::move(m_medias.front());
         m_medias.pop_front();
         lk.unlock();
-        auto demux = Demux(media);
+        auto demux = demux_from_media(media);
         auto [stream_idx, stream] = demux.best_video_stream();
         lk.lock();
         m_framerates.push(stream.fps());
