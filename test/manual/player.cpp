@@ -23,9 +23,8 @@ int main(int argc, char** argv) {
             std::format("usage: {} path/to/file", argv[0]));
 
     auto pline = plai::media::DecodingPipeline();
-    auto data = plai::fs::read_bin(argv[1]);
     pline.set_dims({1920, 1080});
-    pline.decode(std::move(data));
+    pline.decode(argv[1]);
     auto stream = pline.frame_stream();
     auto front = plai::frontend("sdl2");
     auto text = front->texture();

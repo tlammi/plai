@@ -112,10 +112,12 @@ int main(int argc, char** argv) {
                     ++iter;
                     std::println("frame counter: {}", frame_counter);
                     // remove hack, should only extract one frame from JPEG
-                    if (frame_counter < 10) { std::this_thread::sleep_for(3s); }
+                    // if (frame_counter < 10) {
+                    // std::this_thread::sleep_for(3s); }
                     break;
                 }
             }
         }
+        if (frame_counter == 1) { std::this_thread::sleep_for(2s); }
     }
 }

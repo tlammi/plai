@@ -16,7 +16,14 @@ namespace stdfs = std::filesystem;
 
 class DecodingPipeline {
  public:
-    using Media = std::variant<std::vector<uint8_t>, stdfs::path>;
+    struct Image {
+        std::vector<uint8_t> data;
+    };
+    struct Video {
+        std::vector<uint8_t> data;
+    };
+
+    using Media = std::variant<Image, Video>;
     static constexpr size_t BUFFER_SIZE = 1024;
     DecodingPipeline() = default;
 
@@ -30,7 +37,8 @@ class DecodingPipeline {
 
     DecodingStream frame_stream();
 
-    void decode(std::vector<uint8_t> data);
+    void decode_video(std::vector<uint8_t> data);
+    void decode_image(std::vector<uint8_t> data);
     void decode(stdfs::path path);
 
     /**
