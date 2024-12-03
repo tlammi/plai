@@ -10,4 +10,5 @@ SRCS += files(
   'frame_converter.cpp',
   'decoding_pipeline.cpp',
   'decoding_stream.cpp',
+  'util.cpp',
 )
