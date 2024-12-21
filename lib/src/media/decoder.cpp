@@ -39,6 +39,11 @@ Decoder::~Decoder() {
     if (m_ctx) avcodec_free_context(&m_ctx);
 }
 Decoder& Decoder::operator<<(const Packet& pkt) {
+#ifndef NDEBUG
+    static constexpr auto max_idx = std::numeric_limits<std::size_t>::max();
+    if (m_stream_idx == max_idx) m_stream_idx = pkt.stream_index();
+    assert(m_stream_idx == pkt.stream_index());
+#endif
     AV_CHECK(avcodec_send_packet(m_ctx, pkt.raw()));
     return *this;
 }

@@ -51,6 +51,10 @@ class Decoder {
 
  private:
     AVCodecContext* m_ctx;
+#ifndef NDEBUG
+    // used for verifying that all packets come from a single stream
+    std::size_t m_stream_idx{std::numeric_limits<std::size_t>::max()};
+#endif
 };
 
 }  // namespace plai::media
