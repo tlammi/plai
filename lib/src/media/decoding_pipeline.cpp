@@ -76,6 +76,7 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto converted_frame = Frame();
         size_t decoded_frames = 0;
         while (!tok.stop_requested() && demux >> pkt) {
+            if (pkt.stream_index() != stream_idx) continue;
             decoder << pkt;
             if (!(decoder >> frm)) continue;
             if (m_dims) {
