@@ -85,6 +85,7 @@ Demux::~Demux() {
 bool Demux::operator>>(Packet& pkt) {
     av_packet_unref(pkt.raw());
     int res = av_read_frame(m_ctx, pkt.raw());
+    std::println("pkt stream_index: {}", pkt.raw()->stream_index);
     if (res == 0) return true;
     if (res == AVERROR_EOF) return false;
     throw AVException(res);
@@ -112,6 +113,8 @@ int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
         PLAI_TRACE("end-of-file");
         return AVERROR_EOF;
     }
+    std::println("buflen: {}", buflen);
+    std::println("left_in_buf: {}", left_in_buf);
     auto count = std::min(buflen, static_cast<int>(left_in_buf));
     auto spn = self->m_buf.subspan(self->m_buf_offset, count);
     std::memcpy(buf, &self->m_buf[self->m_buf_offset], count);

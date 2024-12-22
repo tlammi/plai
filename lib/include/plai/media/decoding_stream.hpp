@@ -21,6 +21,9 @@ class DecodingStream {
         using value_type = Frame;
         using difference_type = std::ptrdiff_t;
 
+        Iter() = default;
+        explicit Iter(Sentinel /*unused*/) {}
+
         bool operator==(Sentinel /*unused*/) const noexcept { return !m_curr; }
         constexpr bool operator!=(Sentinel s) const noexcept {
             return !(*this == s);
@@ -41,11 +44,13 @@ class DecodingStream {
      private:
         explicit Iter(PersistBuffer<Frame>* buf)
             : m_buf(buf), m_curr(m_buf->pop(Frame())) {}
-        PersistBuffer<Frame>* m_buf;
+        PersistBuffer<Frame>* m_buf{};
         mutable std::optional<Frame> m_curr{};
     };
 
     static_assert(std::input_iterator<Iter>);
+
+    DecodingStream() = default;
 
     auto begin() { return Iter{m_buf}; }
     constexpr Sentinel end() const noexcept { return {}; }
@@ -54,7 +59,7 @@ class DecodingStream {
     DecodingStream(PersistBuffer<Frame>* buf, Frac<int> fps)
         : m_buf(buf), m_fps(fps) {}
 
-    PersistBuffer<Frame>* m_buf;
-    Frac<int> m_fps;
+    PersistBuffer<Frame>* m_buf{};
+    Frac<int> m_fps{0, 0};
 };
 }  // namespace plai::media

@@ -5,6 +5,7 @@
 #include <plai/media/decoding_stream.hpp>
 #include <plai/media/frame.hpp>
 #include <plai/media/frame_converter.hpp>
+#include <plai/media/media.hpp>
 #include <plai/persist_buffer.hpp>
 #include <plai/queue.hpp>
 #include <thread>
@@ -16,14 +17,8 @@ namespace stdfs = std::filesystem;
 
 class DecodingPipeline {
  public:
-    struct Image {
-        std::vector<uint8_t> data;
-    };
-    struct Video {
-        std::vector<uint8_t> data;
-    };
+    using Media = plai::media::Media;
 
-    using Media = std::variant<Image, Video>;
     static constexpr size_t BUFFER_SIZE = 1024;
     DecodingPipeline() = default;
 
@@ -39,6 +34,13 @@ class DecodingPipeline {
 
     void decode_video(std::vector<uint8_t> data);
     void decode_image(std::vector<uint8_t> data);
+    /**
+     * \brief Decode any media.
+     *
+     * Be careful when passing View types. Those are accessed from different
+     * thread and should be valid until they are processed.
+     * */
+    void decode(Media m);
     void decode(stdfs::path path);
 
     /**
@@ -53,11 +55,16 @@ class DecodingPipeline {
         m_dims = dims;
     }
 
+    /**
+     * \brief Number of medias waiting for decoding
+     * */
+    size_t queued_medias() const noexcept;
+
  private:
     void work(std::stop_token tok);
 
+    mutable std::mutex m_mut{};
     PersistBuffer<Frame> m_buf{BUFFER_SIZE};
-    std::mutex m_mut{};
     std::condition_variable m_cv{};
     std::deque<Media> m_medias{};
     Queue<Frac<int>> m_framerates{};

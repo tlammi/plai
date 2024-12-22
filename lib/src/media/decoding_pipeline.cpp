@@ -9,9 +9,7 @@
 namespace plai::media {
 namespace {
 auto demux_from_media(DecodingPipeline::Media& m) {
-    return match(
-        m, [](DecodingPipeline::Image& img) { return Demux(img.data); },
-        [](DecodingPipeline::Video& vid) { return Demux(vid.data); });
+    return match(m, [](auto& arg) { return Demux(arg.data); });
 }
 
 }  // namespace
@@ -41,6 +39,13 @@ void DecodingPipeline::decode_image(std::vector<uint8_t> data) {
     }
     m_cv.notify_one();
 }
+void DecodingPipeline::decode(Media m) {
+    {
+        std::unique_lock lk{m_mut};
+        m_medias.push_back(std::move(m));
+    }
+    m_cv.notify_one();
+}
 
 void DecodingPipeline::decode(stdfs::path path) {
     auto data = fs::read_bin(path);
@@ -52,6 +57,11 @@ void DecodingPipeline::decode(stdfs::path path) {
         PLAI_DEBUG("deduced as video: {}", path.native());
         decode_video(std::move(data));
     }
+}
+
+size_t DecodingPipeline::queued_medias() const noexcept {
+    auto lk = std::unique_lock(m_mut);
+    return m_medias.size();
 }
 
 void DecodingPipeline::work(std::stop_token tok) {
