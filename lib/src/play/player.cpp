@@ -3,6 +3,8 @@
 #include <print>
 #include <variant>
 
+#include "alpha_calc.hpp"
+
 namespace plai::play {
 using namespace std::literals::chrono_literals;
 namespace {
@@ -25,10 +27,12 @@ class Player::Impl {
             m_watermark_textures.push_back(m_front->texture());
             m_watermark_textures.back()->update(m_opts.watermarks.at(i).image);
         }
+        m_decoder.set_dims({1920, 1080});
     }
 
     void run() {
         auto rlimit = RateLimiter(Duration::zero());
+        uint32_t frame_count = 0;
         while (true) {
             while (true) {
                 auto event = m_front->poll_event();
@@ -49,15 +53,25 @@ class Player::Impl {
                 if (!m_stream) {
                     m_stream = m_decoder.frame_stream();
                     m_stream_iter = m_stream->begin();
+                    if (m_prev_frame) {
+                        if (!do_blend()) return;
+                    }
                     rlimit = rate_limiter();
                 } else {
+                    std::swap(m_prev_frame, *m_stream_iter);
                     ++m_stream_iter;
                 }
                 m_front->render_clear();
                 if (m_stream_iter != m_stream->end()) {
-                    m_front_text->update(*m_stream_iter);
+                    auto& frm = *m_stream_iter;
+                    m_front_text->update(frm);
                     m_front_text->render_to({});
+                    ++frame_count;
                 } else {
+                    if (frame_count == 1) {
+                        if (!do_image_delay()) return;
+                        frame_count = 0;
+                    }
                     --m_queued_medias;
                     m_stream.reset();
                     continue;
@@ -81,7 +95,6 @@ class Player::Impl {
     }
 
     RateLimiter rate_limiter() {
-        std::println("rate_limiter");
         if (m_opts.unlimited_fps) return RateLimiter(Duration::zero());
         assert(m_stream);
         static constexpr auto micro = 1'000'000;
@@ -92,14 +105,62 @@ class Player::Impl {
         return RateLimiter(dur);
     }
 
+    bool do_blend() {
+        std::println("blending");
+        auto alpha_calc = AlphaCalc(m_opts.blend_dur);
+        auto defer = Defer([&] {
+            m_front_text->blend_mode(BlendMode::None);
+            m_back_text->blend_mode(BlendMode::None);
+        });
+        m_front_text->blend_mode(BlendMode::Blend);
+        m_back_text->blend_mode(BlendMode::Blend);
+        while (true) {
+            while (true) {
+                auto event = m_front->poll_event();
+                if (!event) break;
+                if (std::holds_alternative<Quit>(*event)) { return false; }
+            }
+            static constexpr auto max_alpha =
+                std::numeric_limits<uint8_t>::max();
+            m_front->render_clear();
+            auto alpha = alpha_calc();
+            std::println("alpha: {}", alpha);
+            m_back_text->alpha(max_alpha - alpha);
+            m_back_text->update(m_prev_frame);
+            m_back_text->render_to({});
+            m_front_text->alpha(alpha);
+            m_front_text->update(*m_stream_iter);
+            m_front_text->render_to({});
+            m_front->render_current();
+            if (alpha == max_alpha) break;
+        }
+        return true;
+    }
+
+    bool do_image_delay() {
+        auto start = Clock::now();
+        auto end = start + m_opts.image_dur;
+
+        while (Clock::now() < end) {
+            while (true) {
+                auto event = m_front->poll_event();
+                if (!event) break;
+                if (std::holds_alternative<Quit>(*event)) return false;
+            }
+        }
+        return true;
+    }
+
     Frontend* m_front;
     MediaSrc* m_src;
     PlayerOpts m_opts;
     media::DecodingPipeline m_decoder{};
     std::optional<media::DecodingStream> m_stream{};
     media::DecodingStream::Iter m_stream_iter{};
+    media::Frame m_prev_frame{};
     std::vector<std::unique_ptr<Texture>> m_watermark_textures{};
     std::unique_ptr<Texture> m_front_text{m_front->texture()};
+    std::unique_ptr<Texture> m_back_text{m_front->texture()};
     size_t m_queued_medias{0};
     bool m_exiting{false};
 };

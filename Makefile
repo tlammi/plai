@@ -9,6 +9,10 @@ ifeq ($(SANITIZE_ADDRESS),1)
 	MESON_CMD := $(MESON_CMD) -Db_sanitize=address
 endif
 
+ifeq ($(SANITIZE_THREAD),1)
+	MESON_CMD := $(MESON_CMD) -Db_sanitize=thread
+endif
+
 .PHONY: compile
 compile: BARGS=meson compile
 compile: .in-build

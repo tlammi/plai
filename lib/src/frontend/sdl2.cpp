@@ -262,6 +262,12 @@ class SdlFrontend final : public Frontend {
         return std::nullopt;
     }
 
+    Vec<int> dimensions() override {
+        Vec<int> out{};
+        SDL_GetWindowSize(m_win.get(), &out.x, &out.y);
+        return out;
+    }
+
     void render_clear() final { SDL_RenderClear(m_rend.get()); }
 
     std::unique_ptr<Texture> texture() final {

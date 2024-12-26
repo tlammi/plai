@@ -26,6 +26,8 @@ class Frontend {
      * */
     virtual std::optional<Event> poll_event() = 0;
 
+    virtual Vec<int> dimensions() = 0;
+
     // TODO: make pure virtual
     virtual void render_clear() {}
 

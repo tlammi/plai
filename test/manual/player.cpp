@@ -1,6 +1,7 @@
 #include <plai/fs/read.hpp>
 #include <plai/play/player.hpp>
-#include <plai/player.hpp>
+#include <plai/util/defer.hpp>
+#include <plai/util/str.hpp>
 #include <print>
 
 struct Playlist final : public plai::play::MediaSrc {
@@ -12,11 +13,11 @@ struct Playlist final : public plai::play::MediaSrc {
         if (path.empty()) return std::nullopt;
         plai::Defer defer{[&] { path.clear(); }};
         auto ext = plai::to_lower(path.extension());
-        if (ext == ".jpeg" || ext == ".jpg" || ext == "png") {
-            std::println("reading {}", path.native());
+        if (ext == ".jpeg" || ext == ".jpg" || ext == ".png") {
+            std::println("reading image: {}", path.native());
             return plai::media::Image(plai::fs::read_bin(path));
         } else {
-            std::println("reading {}", path.native());
+            std::println("reading video: {}", path.native());
             return plai::media::Video(plai::fs::read_bin(path));
         }
     }
@@ -31,6 +32,7 @@ int main(int argc, char** argv) {
     auto player =
         plai::play::Player(front.get(), &plist, {.wait_media = false});
     player.run();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 #if 0
 #include <chrono>

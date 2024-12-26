@@ -30,6 +30,14 @@ struct PlayerOpts {
     Duration image_dur{IMAGE_DEFAULT_DURATION};
 
     /**
+     * \brief Blend duration
+     *
+     * Time to perform linear blend between frames of concecutive medias.
+     * */
+    // Duration blend_dur{Duration::zero()};
+    Duration blend_dur{std::chrono::seconds(5)};
+
+    /**
      * \brief Whether to wait if there is no more media available.
      *
      * If this is set to false the player will block in case there is no media

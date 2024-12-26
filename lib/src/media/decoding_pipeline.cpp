@@ -40,6 +40,7 @@ void DecodingPipeline::decode_image(std::vector<uint8_t> data) {
     m_cv.notify_one();
 }
 void DecodingPipeline::decode(Media m) {
+    std::println("pushing media");
     {
         std::unique_lock lk{m_mut};
         m_medias.push_back(std::move(m));
