@@ -1,11 +1,14 @@
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
+#include <filesystem>
+#include <plai/logs/logs.hpp>
 #include <plai/net/http/server.hpp>
 
 namespace plai::net::http {
 namespace local = boost::asio::local;
 namespace beast = boost::beast;
 namespace http = beast::http;
+namespace fs = std::filesystem;
 namespace {
 
 struct ServiceKey {
@@ -23,14 +26,30 @@ struct ServiceKey {
 using ServiceHandler = std::function<Response(const Request&)>;
 using ServiceMap = std::map<ServiceKey, ServiceHandler>;
 
+http::response<http::vector_body<uint8_t>> make_boost_response(
+    const Response& resp, unsigned http_version) {
+    http::response<http::vector_body<uint8_t>> out{
+        http::int_to_status(resp.status_code), http_version};
+    out.set(http::field::server, "plai media player");
+    out.set(http::field::content_type, "text/plain");
+    out.body() = std::move(resp.body);
+    out.prepare_payload();
+    return out;
+}
 }  // namespace
 
 class Server::Impl {
  public:
     Impl(std::string socket, ServiceMap services)
-        : m_sock(std::move(socket)), m_services(std::move(services)) {}
+        : m_sock(std::move(socket)), m_services(std::move(services)) {
+        PLAI_DEBUG("registered API handlers:");
+        for (const auto& [key, _] : m_services) {
+            PLAI_DEBUG("  '{}'", key.pattern);
+        }
+    }
 
     void run() {
+        if (fs::exists(m_sock)) { fs::remove(m_sock); }
         auto ioc = boost::asio::io_context();
         auto acceptor = local::stream_protocol::acceptor(
             ioc, local::stream_protocol::endpoint(m_sock));
@@ -48,16 +67,46 @@ class Server::Impl {
                 if (tgt) {
                     auto resp = handler(
                         Request{.target = *std::move(tgt), .body = req.body()});
+                    auto boost_resp = make_boost_response(resp, req.version());
+                    /*
+                    auto boost_resp =
+                        http::response<http::vector_body<uint8_t>>(
+                            http::status::ok, req.version());
+                    boost_resp.set(http::field::server, "Plai media player");
+                    boost_resp.set(http::field::content_type, "text/plain");
+                    boost_resp.prepare_payload();
+                    */
+                    http::write(stream, boost_resp);
                 }
             }
-
-            auto resp = http::response<http::vector_body<uint8_t>>(
-                http::status::ok, req.version());
         }
     }
 
  private:
-    std::string m_sock;
+    http::response<http::vector_body<uint8_t>> handle_request(
+        http::request<http::vector_body<uint8_t>>& req) {
+        auto target_str = std::string_view(req.target());
+        for (const auto& [key, handler] : m_services) {
+            auto tgt = parse_target(key.pattern, target_str);
+            if (tgt) {
+                auto resp = handler(
+                    Request{.target = std::move(*tgt), .body = req.body()});
+                auto boost_resp = http::response<http::vector_body<uint8_t>>(
+                    http::status::ok, req.version());
+                boost_resp.set(http::field::server, "Plai media player");
+                boost_resp.set(http::field::content_type, "text/plain");
+                boost_resp.prepare_payload();
+                return boost_resp;
+            }
+        }
+        auto resp = http::response<http::vector_body<uint8_t>>(
+            http::status::not_found, req.version());
+        resp.set(http::field::server, "Plai media player");
+        resp.set(http::field::content_type, "text/plain");
+        resp.prepare_payload();
+        return resp;
+    }
+    fs::path m_sock;
     ServiceMap m_services;
 };
 
