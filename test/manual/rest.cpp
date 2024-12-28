@@ -7,21 +7,19 @@ int main(int argc, char** argv) {
     if (argc != 2) { throw plai::ValueError("usage: rest [socket]"); }
     auto builder = plai::net::http::server();
     builder.prefix("/plai/v1");
-    std::string data{};
+    std::map<std::string, std::string> dict{};
     auto srv =
         builder
-            .service("/store", plai::net::http::METHOD_POST,
+            .service("/store/{key}", plai::net::http::METHOD_POST,
                      [&](const Request& req) -> Response {
-                         data = std::string(req.body.begin(), req.body.end());
-                         std::println("data: {}", data);
+                         std::println("data: {}", req.body);
+                         dict[std::string(req.target.at("key"))] =
+                             std::string(req.body);
                          return {};
                      })
-            .service("/read", plai::net::http::METHOD_GET,
+            .service("/read/{key}", plai::net::http::METHOD_GET,
                      [&](const Request& req) -> Response {
-                         auto v = std::vector<uint8_t>();
-                         v.reserve(data.size());
-                         for (char c : data) { v.push_back(c); }
-                         return {std::move(v)};
+                         return {dict[std::string(req.target.at("key"))]};
                      })
             .bind(argv[1])
             .commit();

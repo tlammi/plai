@@ -8,6 +8,6 @@ namespace plai::net::http {
 
 struct Request {
     Target target{};
-    std::span<const uint8_t> body;
+    std::string_view body;
 };
 }  // namespace plai::net::http

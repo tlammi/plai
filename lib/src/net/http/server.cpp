@@ -26,10 +26,10 @@ struct ServiceKey {
 using ServiceHandler = std::function<Response(const Request&)>;
 using ServiceMap = std::map<ServiceKey, ServiceHandler>;
 
-http::response<http::vector_body<uint8_t>> make_boost_response(
-    const Response& resp, unsigned http_version) {
-    http::response<http::vector_body<uint8_t>> out{
-        http::int_to_status(resp.status_code), http_version};
+http::response<http::string_body> make_boost_response(const Response& resp,
+                                                      unsigned http_version) {
+    http::response<http::string_body> out{http::int_to_status(resp.status_code),
+                                          http_version};
     out.set(http::field::server, "plai media player");
     out.set(http::field::content_type, "text/plain");
     out.body() = std::move(resp.body);
@@ -53,38 +53,12 @@ class Server::Impl {
         auto ioc = boost::asio::io_context();
         auto acceptor = local::stream_protocol::acceptor(
             ioc, local::stream_protocol::endpoint(m_sock));
-        while (true) {
-            auto sock = local::stream_protocol::socket(ioc);
-            acceptor.accept(sock);
-            auto stream =
-                beast::basic_stream<local::stream_protocol>(std::move(sock));
-            beast::flat_buffer buf{};
-            http::request<http::vector_body<uint8_t>> req{};
-            http::read(stream, buf, req);
-            auto target_str = std::string_view(req.target());
-            for (const auto& [key, handler] : m_services) {
-                auto tgt = parse_target(key.pattern, target_str);
-                if (tgt) {
-                    auto resp = handler(
-                        Request{.target = *std::move(tgt), .body = req.body()});
-                    auto boost_resp = make_boost_response(resp, req.version());
-                    /*
-                    auto boost_resp =
-                        http::response<http::vector_body<uint8_t>>(
-                            http::status::ok, req.version());
-                    boost_resp.set(http::field::server, "Plai media player");
-                    boost_resp.set(http::field::content_type, "text/plain");
-                    boost_resp.prepare_payload();
-                    */
-                    http::write(stream, boost_resp);
-                }
-            }
-        }
+        while (true) { step(ioc, acceptor); }
     }
 
  private:
     http::response<http::vector_body<uint8_t>> handle_request(
-        http::request<http::vector_body<uint8_t>>& req) {
+        http::request<http::string_body>& req) {
         auto target_str = std::string_view(req.target());
         for (const auto& [key, handler] : m_services) {
             auto tgt = parse_target(key.pattern, target_str);
@@ -106,6 +80,34 @@ class Server::Impl {
         resp.prepare_payload();
         return resp;
     }
+
+    void step(boost::asio::io_context& ioc,
+              local::stream_protocol::acceptor& acceptor) {
+        auto sock = local::stream_protocol::socket(ioc);
+        acceptor.accept(sock);
+        auto stream =
+            beast::basic_stream<local::stream_protocol>(std::move(sock));
+        beast::flat_buffer buf{};
+        http::request<http::string_body> req{};
+        http::read(stream, buf, req);
+        auto target_str = std::string_view(req.target());
+        for (const auto& [key, handler] : m_services) {
+            auto tgt = parse_target(key.pattern, target_str);
+            if (tgt) {
+                PLAI_DEBUG("handler: '{}'", key.pattern);
+                auto resp = handler(
+                    Request{.target = *std::move(tgt), .body = req.body()});
+                auto boost_resp = make_boost_response(resp, req.version());
+                http::write(stream, boost_resp);
+                return;
+            }
+        }
+        http::write(stream,
+                    make_boost_response(Response{.body = "Not found",
+                                                 .status_code = PLAI_HTTP(404)},
+                                        req.version()));
+    }
+
     fs::path m_sock;
     ServiceMap m_services;
 };

@@ -2,12 +2,12 @@
 
 #include <cstdint>
 #include <plai/net/http/macros.hpp>
-#include <vector>
+#include <string>
 
 namespace plai::net::http {
 
 struct Response {
-    std::vector<uint8_t> body;
-    uint8_t status_code{PLAI_HTTP(200)};
+    std::string body;
+    uint16_t status_code{PLAI_HTTP(200)};
 };
 }  // namespace plai::net::http
