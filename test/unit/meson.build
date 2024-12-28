@@ -1,4 +1,4 @@
-tests = files(
+TESTS = files(
   'demux.cpp',
   'decode.cpp',
   'ring_buffer.cpp',
@@ -8,7 +8,10 @@ tests = files(
   'prof.cpp',
   'persist_buffer.cpp',
   'frame.cpp',
+  'view_generator.cpp',
 )
+
+subdir('net')
 
 fs = import('fs')
 
@@ -18,10 +21,12 @@ test_deps = [
   libplai_dep,
 ]
 
-foreach t: tests
-  nm = fs.name(t)
-  nm = nm.split('.')[0]
-  test_nm = '@0@_test'.format(nm)
-  e = executable(test_nm, t, dependencies: test_deps)
-  test(test_nm, e)
+foreach t: TESTS
+  path = t.full_path()
+  path = fs.relative_to(path, '.')
+  path = path.split('.')[0]
+  parts = path.split('/')
+  nm = '.'.join(parts)
+  e = executable(nm, t, dependencies: test_deps)
+  test(nm, e)
 endforeach

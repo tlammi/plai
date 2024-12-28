@@ -1,21 +1,29 @@
 #include <plai/net/http/server.hpp>
 #include <print>
 
-int main() {
-    plai::net::http::ServerBuilder builder{};
+using plai::net::http::Request;
+using plai::net::http::Response;
+int main(int argc, char** argv) {
+    if (argc != 2) { throw plai::ValueError("usage: rest [socket]"); }
+    auto builder = plai::net::http::server();
     builder.prefix("/plai/v1");
     std::string data{};
-    builder
-        .service("/store", plai::net::http::method::POST,
-                 [&](const plai::net::http::Request& req,
-                     plai::net::http::Response& resp) {
-                     std::println("data: {}", req.body);
-                     data = req.body;
-                 })
-        .service("/read", plai::net::http::method::GET,
-                 [&](const plai::net::http::Request& req,
-                     plai::net::http::Response& resp) {
-                     resp.set_content(data, "text/plain");
-                 })
-        .run("0.0.0.0", 8080);
+    auto srv =
+        builder
+            .service("/store", plai::net::http::METHOD_POST,
+                     [&](const Request& req) -> Response {
+                         data = std::string(req.body.begin(), req.body.end());
+                         std::println("data: {}", data);
+                         return {};
+                     })
+            .service("/read", plai::net::http::METHOD_GET,
+                     [&](const Request& req) -> Response {
+                         auto v = std::vector<uint8_t>();
+                         v.reserve(data.size());
+                         for (char c : data) { v.push_back(c); }
+                         return {std::move(v)};
+                     })
+            .bind(argv[1])
+            .commit();
+    srv.run();
 }

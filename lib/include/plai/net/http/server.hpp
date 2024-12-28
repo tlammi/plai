@@ -1,48 +1,53 @@
 #pragma once
 
-#include <httplib.h>
-
+#include <functional>
+#include <memory>
 #include <plai/net/http/method.hpp>
-#include <print>
-#include <string_view>
+#include <plai/net/http/request.hpp>
+#include <plai/net/http/response.hpp>
 
 namespace plai::net::http {
 
-using Request = httplib::Request;
-using Response = httplib::Response;
-
-class Server {
-    friend class ServerBuilder;
-
- public:
- private:
-    explicit Server(std::unique_ptr<httplib::Server> srv)
-        : m_srv(std::move(srv)) {}
-    std::unique_ptr<httplib::Server> m_srv;
-};
+class Server;
 
 class ServerBuilder {
+    friend class Server;
+
  public:
     using Self = ServerBuilder;
-    Self& prefix(std::string_view prefix) noexcept {
-        m_prefix = prefix;
-        return *this;
-    }
 
-    Self& service(const std::string& pattern, method::Method mthd,
-                  std::function<void(const Request&, Response&)> cb) {
-        if (mthd & method::GET) m_srv->Get(pattern, cb);
-        if (mthd & method::POST) m_srv->Post(pattern, cb);
-        return *this;
-    }
+    ServerBuilder();
 
-    void run(const std::string& host, int port) { m_srv->listen(host, port); }
+    ~ServerBuilder();
+
+    Self& prefix(std::string prefix);
+
+    Self& service(std::string pattern, Method methods,
+                  std::function<Response(const Request&)> handler);
+
+    Self& bind(std::string socket);
+
+    Server commit();
 
  private:
-    std::unique_ptr<httplib::Server> m_srv{std::make_unique<httplib::Server>()};
-    using ServicePair =
-        std::pair<std::string, std::function<void(const Request&, Response&)>>;
-    std::string_view m_prefix{};
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
 };
+
+class Server {
+    friend class ServerBuilder::Impl;
+
+ public:
+    ~Server();
+
+    void run();
+
+ private:
+    class Impl;
+    Server(std::unique_ptr<Impl> impl);
+    std::unique_ptr<Impl> m_impl;
+};
+
+inline ServerBuilder server() noexcept { return {}; }
 
 }  // namespace plai::net::http

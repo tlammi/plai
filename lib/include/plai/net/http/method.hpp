@@ -2,13 +2,13 @@
 
 #include <cstdint>
 
-namespace plai::net::http::method {
+namespace plai::net::http {
 
-using Method = uint8_t;
+using Method = std::uint8_t;
 
-constexpr Method GET = 1;
-constexpr Method POST = 1 << 1;
-constexpr Method PUT = 1 << 2;
-constexpr Method DELETE = 1 << 3;
+constexpr Method METHOD_GET = 0x01;
+constexpr Method METHOD_POST = 0x02;
+constexpr Method METHOD_PUT = 0x04;
+constexpr Method METHOD_DELETE = 0x08;
 
-}  // namespace plai::net::http::method
+}  // namespace plai::net::http
