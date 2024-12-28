@@ -57,30 +57,6 @@ class Server::Impl {
     }
 
  private:
-    http::response<http::vector_body<uint8_t>> handle_request(
-        http::request<http::string_body>& req) {
-        auto target_str = std::string_view(req.target());
-        for (const auto& [key, handler] : m_services) {
-            auto tgt = parse_target(key.pattern, target_str);
-            if (tgt) {
-                auto resp = handler(
-                    Request{.target = std::move(*tgt), .body = req.body()});
-                auto boost_resp = http::response<http::vector_body<uint8_t>>(
-                    http::status::ok, req.version());
-                boost_resp.set(http::field::server, "Plai media player");
-                boost_resp.set(http::field::content_type, "text/plain");
-                boost_resp.prepare_payload();
-                return boost_resp;
-            }
-        }
-        auto resp = http::response<http::vector_body<uint8_t>>(
-            http::status::not_found, req.version());
-        resp.set(http::field::server, "Plai media player");
-        resp.set(http::field::content_type, "text/plain");
-        resp.prepare_payload();
-        return resp;
-    }
-
     void step(boost::asio::io_context& ioc,
               local::stream_protocol::acceptor& acceptor) {
         auto sock = local::stream_protocol::socket(ioc);
