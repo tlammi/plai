@@ -27,6 +27,8 @@ class Player::Impl {
             m_watermark_textures.push_back(m_front->texture());
             m_watermark_textures.back()->update(m_opts.watermarks.at(i).image);
         }
+        // TODO: inspect why this is needed, without this decoding largish JPEG
+        // images may (and does so maybe 9/10 times) crash the program.
         m_decoder.set_dims({1920, 1080});
     }
 

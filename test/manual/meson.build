@@ -7,6 +7,7 @@ tests = files(
   'blend_player.cpp',
   'rest.cpp',
   'watermark_player.cpp',
+  'store.cpp',
 )
 
 fs = import('fs')

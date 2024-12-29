@@ -8,4 +8,5 @@ subdir('net')
 SRCS += files(
   'prof.cpp',
   'crypto.cpp',
+  'store.cpp',
 )
