@@ -9,6 +9,8 @@ TESTS = files(
   'persist_buffer.cpp',
   'frame.cpp',
   'view_generator.cpp',
+  'str.cpp',
+  'crypto.cpp',
 )
 
 subdir('net')
