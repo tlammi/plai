@@ -3,7 +3,6 @@
 #include <cassert>
 #include <plai/crypto.hpp>
 #include <plai/store.hpp>
-#include <print>
 
 #include "sqlite.hpp"
 
@@ -34,7 +33,6 @@ std::string lock_stmt(std::span<CStr> keys, bool lock) {
         keys = keys.subspan(1);
     }
     stmt += ";";
-    std::println("stmt {}", stmt);
     return stmt;
 }
 
