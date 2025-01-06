@@ -4,7 +4,9 @@
 
 #include <memory>
 #include <plai/c_str.hpp>
+#include <plai/crypto.hpp>
 #include <plai/exceptions.hpp>
+#include <ranges>
 #include <vector>
 
 namespace plai::sqlite {
@@ -12,6 +14,7 @@ namespace plai::sqlite {
 class SqliteException : public Exception {
  public:
     SqliteException(sqlite3* handle) : Exception(sqlite3_errmsg(handle)) {}
+    SqliteException(CStr str) : Exception(str) {}
 };
 
 void check_error(int code, sqlite3* handle) {
@@ -45,8 +48,8 @@ inline void bind(Connection& conn, Statement& stmt, int idx,
 }
 
 inline void bind(Connection& conn, Statement& stmt, int idx, CStr str) {
-    int res = sqlite3_bind_text(
-        stmt.get(), idx, str, static_cast<int>(str.size() + 1), SQLITE_STATIC);
+    int res = sqlite3_bind_text(stmt.get(), idx, str,
+                                static_cast<int>(str.size()), SQLITE_STATIC);
     check_error(res, conn.get());
 }
 
@@ -81,6 +84,23 @@ std::vector<uint8_t> unbind<std::vector<uint8_t>>(Connection& conn,
     auto span =
         std::span<const uint8_t>(static_cast<const uint8_t*>(ptr), bytes);
     return {span.begin(), span.end()};
+}
+
+template <>
+crypto::Sha256 unbind<crypto::Sha256>(Connection& conn, Statement& stmt,
+                                      int idx) {
+    const void* ptr = sqlite3_column_blob(stmt.get(), idx);
+    const auto bytes = sqlite3_column_bytes(stmt.get(), idx);
+    static constexpr size_t expected_size = crypto::Sha256().size();
+
+    if (bytes != expected_size) {
+        SqliteException("invalid SHA256 checksum stored");
+    }
+    auto span =
+        std::span<const uint8_t>(static_cast<const uint8_t*>(ptr), bytes);
+    crypto::Sha256 out{};
+    std::copy(span.begin(), span.end(), out.begin());
+    return out;
 }
 
 template <>

@@ -11,6 +11,7 @@ TESTS = files(
   'view_generator.cpp',
   'str.cpp',
   'crypto.cpp',
+  'store.cpp',
 )
 
 subdir('net')
@@ -20,6 +21,7 @@ fs = import('fs')
 test_deps = [
   dependency('gtest'),
   dependency('gtest_main'),
+  dependency('gmock'),
   libplai_dep,
 ]
 

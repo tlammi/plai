@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <plai/c_str.hpp>
+#include <plai/crypto.hpp>
 #include <plai/virtual.hpp>
 #include <vector>
 
@@ -9,7 +10,7 @@ namespace plai {
 
 struct BlobMeta {
     size_t bytes;
-    std::vector<uint8_t> sha256;
+    crypto::Sha256 sha256;
     bool locked;
     bool marked_for_deletion;
 };

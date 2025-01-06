@@ -9,13 +9,13 @@
 namespace plai {
 namespace {
 constexpr CStr create_tbl_stmt =
-    "CREATE TABLE IF NOT EXISTS plai (name STRING UNIQUE, sha256 BLOB, bytes "
+    "CREATE TABLE IF NOT EXISTS plai (name STRING PRIMARY KEY, sha256 BLOB, "
+    "bytes "
     "INTEGER, data "
     "BLOB);";
 constexpr CStr list_stmt = "SELECT (name) from plai;";
-constexpr CStr store_stmt = "INSERT INTO plai VALUES (?,?,?,?);";
-constexpr CStr inspect_stmt =
-    "SELECT (sha256, bytes) FROM plai WHERE (name=?);";
+constexpr CStr store_stmt = "INSERT OR REPLACE INTO plai VALUES (?,?,?,?);";
+constexpr CStr inspect_stmt = "SELECT sha256, bytes FROM plai WHERE (name=?);";
 constexpr CStr read_stmt = "SELECT (data) FROM plai WHERE (name=?);";
 constexpr CStr rm_stmt = "DELETE FROM plai WHERE (name=?);";
 
@@ -63,8 +63,7 @@ class SqliteStore final : public Store {
         while (res == SQLITE_BUSY) { res = sqlite::step_one(m_conn, stmt); }
         if (res == SQLITE_DONE) return std::nullopt;
         assert(res == SQLITE_ROW);
-        auto values =
-            sqlite::unbind_all<std::vector<uint8_t>, int64_t>(m_conn, stmt);
+        auto values = sqlite::unbind_all<crypto::Sha256, int64_t>(m_conn, stmt);
         sqlite::step_all(m_conn, stmt);
         return BlobMeta{
             .bytes = static_cast<size_t>(std::move(std::get<1>(values))),
