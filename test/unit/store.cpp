@@ -191,3 +191,12 @@ TEST(Remove, UnlockMarked) {
     auto ls = db->list();
     ASSERT_TRUE(ls.empty());
 }
+
+TEST(Read, Simple) {
+    auto db = mk_store();
+    auto span = span_cast("a");
+    auto expected = std::vector<uint8_t>(span.begin(), span.end());
+    db->store("a", expected);
+    auto res = db->read("a");
+    ASSERT_EQ(res, expected);
+}
