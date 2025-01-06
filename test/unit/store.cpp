@@ -93,3 +93,71 @@ TEST(Lock, OneMatch) {
     ASSERT_TRUE(res->locked);
 }
 
+TEST(Lock, MultiMatch) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    db->store("b", span_cast("b"));
+    db->store("c", span_cast("c"));
+    auto keys = std::vector<plai::CStr>{"a", "b"};
+    auto success = db->lock(keys);
+    ASSERT_TRUE(success);
+    auto res = db->inspect("a");
+    ASSERT_TRUE(res.value().locked);
+    res = db->inspect("b");
+    ASSERT_TRUE(res.value().locked);
+    res = db->inspect("c");
+    ASSERT_FALSE(res.value().locked);
+}
+
+TEST(Lock, SingleMismatch) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    auto keys = std::vector<plai::CStr>{"b"};
+    auto success = db->lock(keys);
+    ASSERT_FALSE(success);
+    auto res = db->inspect("a");
+    ASSERT_FALSE(res.value().locked);
+}
+
+TEST(Lock, MultiMisMatch) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    db->store("b", span_cast("b"));
+    db->store("c", span_cast("c"));
+
+    auto keys = std::vector<plai::CStr>{"a", "b", "c", "d"};
+    auto success = db->lock(keys);
+    ASSERT_FALSE(success);
+    keys.pop_back();
+    for (const auto k : keys) {
+        auto res = db->inspect(k);
+        ASSERT_FALSE(res.value().locked);
+    }
+}
+
+TEST(Unlock, One) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    auto keys = std::vector<plai::CStr>{"a"};
+    bool success = db->lock(keys);
+    ASSERT_TRUE(success);
+    db->unlock(keys);
+    auto res = db->inspect("a");
+    ASSERT_FALSE(res.value().locked);
+}
+
+TEST(Unlock, Many) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    db->store("b", span_cast("b"));
+    db->store("c", span_cast("c"));
+    auto keys = std::vector<plai::CStr>{"a", "b", "c"};
+    auto success = db->lock(keys);
+    ASSERT_TRUE(success);
+    keys.pop_back();
+    db->unlock(keys);
+
+    ASSERT_FALSE(db->inspect("a").value().locked);
+    ASSERT_FALSE(db->inspect("b").value().locked);
+    ASSERT_TRUE(db->inspect("c").value().locked);
+}

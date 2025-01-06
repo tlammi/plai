@@ -19,30 +19,18 @@ constexpr CStr inspect_stmt =
 constexpr CStr read_stmt = "SELECT (data) FROM plai WHERE (name=?);";
 constexpr CStr rm_stmt = "DELETE FROM plai WHERE (name=?);";
 
-std::string lock_stmt(std::span<CStr> keys) {
+std::string lock_stmt(std::span<CStr> keys, bool lock) {
     assert(!keys.empty());
-    std::string stmt = std::format("UPDATE plai SET locked=1 WHERE name=\"{}\"",
-                                   keys.front().view());
+    std::string stmt =
+        std::format("UPDATE plai SET locked={} WHERE name=\"{}\"", lock ? 1 : 0,
+                    keys.front().view());
     keys = keys.subspan(1);
     while (!keys.empty()) {
-        stmt += std::format(" OR name={}", keys.front().view());
+        stmt += std::format(" OR name=\"{}\"", keys.front().view());
         keys = keys.subspan(1);
     }
     stmt += ";";
     std::println("stmt {}", stmt);
-    return stmt;
-}
-
-std::string unlock_stmt(std::span<CStr> keys) {
-    assert(!keys.empty());
-    std::string stmt = std::format("UPDATE plai SET locked=0 WHERE name=\"{}\"",
-                                   keys.front().view());
-    keys = keys.subspan(1);
-    while (!keys.empty()) {
-        stmt += std::format(" OR name={}", keys.front().view());
-        keys = keys.subspan(1);
-    }
-    stmt += ";";
     return stmt;
 }
 
@@ -101,12 +89,12 @@ class SqliteStore final : public Store {
     }
 
     bool lock(std::span<CStr> keys) final {
-        auto stmt = sqlite::statement(m_conn.get(), lock_stmt(keys));
+        auto stmt = sqlite::statement(m_conn.get(), lock_stmt(keys, true));
         sqlite::step_all(m_conn, stmt);
         auto ls = list();
-        for (const auto& l : ls) {
-            auto iter = std::find(keys.begin(), keys.end(), l);
-            if (iter == keys.end()) {
+        for (const auto& k : keys) {
+            auto iter = std::find(ls.begin(), ls.end(), k);
+            if (iter == ls.end()) {
                 unlock(keys);
                 return false;
             }
@@ -115,7 +103,7 @@ class SqliteStore final : public Store {
     }
 
     void unlock(std::span<CStr> keys) final {
-        auto stmt = sqlite::statement(m_conn.get(), unlock_stmt(keys));
+        auto stmt = sqlite::statement(m_conn.get(), lock_stmt(keys, false));
         sqlite::step_all(m_conn, stmt);
     }
 
