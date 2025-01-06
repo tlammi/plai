@@ -79,3 +79,17 @@ TEST(Store, OverwriteSome) {
     ASSERT_EQ(res->sha256, plai::crypto::sha256(span_cast("foo")));
 }
 
+TEST(Lock, OneMatch) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    auto res = db->inspect("a");
+    ASSERT_TRUE(res);
+    ASSERT_FALSE(res->locked);
+    auto keys = std::vector<plai::CStr>{"a"};
+    auto success = db->lock(keys);
+    ASSERT_TRUE(success);
+    res = db->inspect("a");
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res->locked);
+}
+

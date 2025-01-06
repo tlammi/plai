@@ -43,6 +43,10 @@ class CStr {
         return std::string_view(m_span);
     }
 
+    constexpr bool operator==(const CStr& other) const noexcept {
+        return std::string_view(m_span) == std::string_view(other.m_span);
+    }
+
  private:
     std::span<const char> m_span;
 };

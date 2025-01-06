@@ -3,6 +3,7 @@
 #include <cassert>
 #include <plai/crypto.hpp>
 #include <plai/store.hpp>
+#include <print>
 
 #include "sqlite.hpp"
 
@@ -10,14 +11,40 @@ namespace plai {
 namespace {
 constexpr CStr create_tbl_stmt =
     "CREATE TABLE IF NOT EXISTS plai (name STRING PRIMARY KEY, sha256 BLOB, "
-    "bytes "
-    "INTEGER, data "
-    "BLOB);";
+    "bytes INTEGER, locked BOOLEAN, marked_for_deletion BOOLEAN, data BLOB);";
 constexpr CStr list_stmt = "SELECT (name) from plai;";
-constexpr CStr store_stmt = "INSERT OR REPLACE INTO plai VALUES (?,?,?,?);";
-constexpr CStr inspect_stmt = "SELECT sha256, bytes FROM plai WHERE (name=?);";
+constexpr CStr store_stmt = "INSERT OR REPLACE INTO plai VALUES (?,?,?,0,0,?);";
+constexpr CStr inspect_stmt =
+    "SELECT sha256, bytes, locked FROM plai WHERE (name=?);";
 constexpr CStr read_stmt = "SELECT (data) FROM plai WHERE (name=?);";
 constexpr CStr rm_stmt = "DELETE FROM plai WHERE (name=?);";
+
+std::string lock_stmt(std::span<CStr> keys) {
+    assert(!keys.empty());
+    std::string stmt = std::format("UPDATE plai SET locked=1 WHERE name=\"{}\"",
+                                   keys.front().view());
+    keys = keys.subspan(1);
+    while (!keys.empty()) {
+        stmt += std::format(" OR name={}", keys.front().view());
+        keys = keys.subspan(1);
+    }
+    stmt += ";";
+    std::println("stmt {}", stmt);
+    return stmt;
+}
+
+std::string unlock_stmt(std::span<CStr> keys) {
+    assert(!keys.empty());
+    std::string stmt = std::format("UPDATE plai SET locked=0 WHERE name=\"{}\"",
+                                   keys.front().view());
+    keys = keys.subspan(1);
+    while (!keys.empty()) {
+        stmt += std::format(" OR name={}", keys.front().view());
+        keys = keys.subspan(1);
+    }
+    stmt += ";";
+    return stmt;
+}
 
 }  // namespace
 
@@ -63,17 +90,34 @@ class SqliteStore final : public Store {
         while (res == SQLITE_BUSY) { res = sqlite::step_one(m_conn, stmt); }
         if (res == SQLITE_DONE) return std::nullopt;
         assert(res == SQLITE_ROW);
-        auto values = sqlite::unbind_all<crypto::Sha256, int64_t>(m_conn, stmt);
+        auto values =
+            sqlite::unbind_all<crypto::Sha256, int64_t, int64_t>(m_conn, stmt);
         sqlite::step_all(m_conn, stmt);
         return BlobMeta{
             .bytes = static_cast<size_t>(std::move(std::get<1>(values))),
             .sha256 = std::move(std::get<0>(values)),
+            .locked = static_cast<bool>(std::get<2>(values)),
         };
     }
 
-    bool lock(std::span<CStr> keys) final {}
+    bool lock(std::span<CStr> keys) final {
+        auto stmt = sqlite::statement(m_conn.get(), lock_stmt(keys));
+        sqlite::step_all(m_conn, stmt);
+        auto ls = list();
+        for (const auto& l : ls) {
+            auto iter = std::find(keys.begin(), keys.end(), l);
+            if (iter == keys.end()) {
+                unlock(keys);
+                return false;
+            }
+        }
+        return true;
+    }
 
-    void unlock(std::span<CStr> keys) final {}
+    void unlock(std::span<CStr> keys) final {
+        auto stmt = sqlite::statement(m_conn.get(), unlock_stmt(keys));
+        sqlite::step_all(m_conn, stmt);
+    }
 
     std::vector<uint8_t> read(CStr key) final {
         auto stmt = sqlite::statement(m_conn.get(), read_stmt);
