@@ -15,9 +15,13 @@ constexpr CStr create_tbl_stmt =
 constexpr CStr list_stmt = "SELECT (name) from plai;";
 constexpr CStr store_stmt = "INSERT OR REPLACE INTO plai VALUES (?,?,?,0,0,?);";
 constexpr CStr inspect_stmt =
-    "SELECT sha256, bytes, locked FROM plai WHERE (name=?);";
+    "SELECT sha256, bytes, locked, marked_for_deletion FROM plai WHERE "
+    "(name=?);";
 constexpr CStr read_stmt = "SELECT (data) FROM plai WHERE (name=?);";
-constexpr CStr rm_stmt = "DELETE FROM plai WHERE (name=?);";
+constexpr CStr mark_for_deletion_stmt =
+    "UPDATE plai SET marked_for_deletion=? WHERE name=?;";
+constexpr CStr prune_marked_stmt =
+    "DELETE FROM plai WHERE (marked_for_deletion=1 AND locked=0);";
 
 std::string lock_stmt(std::span<CStr> keys, bool lock) {
     assert(!keys.empty());
@@ -79,12 +83,14 @@ class SqliteStore final : public Store {
         if (res == SQLITE_DONE) return std::nullopt;
         assert(res == SQLITE_ROW);
         auto values =
-            sqlite::unbind_all<crypto::Sha256, int64_t, int64_t>(m_conn, stmt);
+            sqlite::unbind_all<crypto::Sha256, int64_t, int64_t, int64_t>(
+                m_conn, stmt);
         sqlite::step_all(m_conn, stmt);
         return BlobMeta{
             .bytes = static_cast<size_t>(std::move(std::get<1>(values))),
             .sha256 = std::move(std::get<0>(values)),
             .locked = static_cast<bool>(std::get<2>(values)),
+            .marked_for_deletion = static_cast<bool>(std::get<3>(values)),
         };
     }
 
@@ -105,6 +111,8 @@ class SqliteStore final : public Store {
     void unlock(std::span<CStr> keys) final {
         auto stmt = sqlite::statement(m_conn.get(), lock_stmt(keys, false));
         sqlite::step_all(m_conn, stmt);
+        stmt = sqlite::statement(m_conn.get(), prune_marked_stmt);
+        sqlite::step_all(m_conn, stmt);
     }
 
     std::vector<uint8_t> read(CStr key) final {
@@ -121,8 +129,10 @@ class SqliteStore final : public Store {
     }
 
     void remove(CStr key) final {
-        auto stmt = sqlite::statement(m_conn.get(), rm_stmt);
-        sqlite::bind_all(m_conn, stmt, key);
+        auto stmt = sqlite::statement(m_conn.get(), mark_for_deletion_stmt);
+        sqlite::bind_all(m_conn, stmt, 1, key);
+        sqlite::step_all(m_conn, stmt);
+        stmt = sqlite::statement(m_conn.get(), prune_marked_stmt);
         sqlite::step_all(m_conn, stmt);
     }
 

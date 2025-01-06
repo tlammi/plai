@@ -161,3 +161,33 @@ TEST(Unlock, Many) {
     ASSERT_FALSE(db->inspect("b").value().locked);
     ASSERT_TRUE(db->inspect("c").value().locked);
 }
+
+TEST(Remove, One) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    db->remove("a");
+    auto ls = db->list();
+    ASSERT_TRUE(ls.empty());
+}
+
+TEST(Remove, OneLocked) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    auto keys = std::vector<plai::CStr>{"a"};
+    db->lock(keys);
+    db->remove("a");
+    auto res = db->inspect("a");
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res->marked_for_deletion);
+}
+
+TEST(Remove, UnlockMarked) {
+    auto db = mk_store();
+    db->store("a", span_cast("a"));
+    auto keys = std::vector<plai::CStr>{"a"};
+    db->lock(keys);
+    db->remove("a");
+    db->unlock(keys);
+    auto ls = db->list();
+    ASSERT_TRUE(ls.empty());
+}
