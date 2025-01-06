@@ -9,5 +9,5 @@ if get_option('b_sanitize') == 'address'
 endif
 
 subdir('lib')
-#subdir('bin')
+subdir('bin')
 subdir('test')
