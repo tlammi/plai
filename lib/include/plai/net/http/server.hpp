@@ -38,6 +38,12 @@ class Server {
     friend class ServerBuilder::Impl;
 
  public:
+    Server(const Server&) = delete;
+    Server& operator=(const Server&) = delete;
+
+    Server(Server&&) noexcept;
+    Server& operator=(Server&&) noexcept;
+
     ~Server();
 
     void run();

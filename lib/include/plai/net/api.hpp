@@ -1,0 +1,87 @@
+#pragma once
+
+#include <functional>
+#include <memory>
+#include <plai/store.hpp>
+#include <plai/virtual.hpp>
+
+namespace plai::net {
+enum class MediaType {
+    Image,
+    Video,
+};
+
+enum class DeleteResult {
+    Success,
+    Scheduled,
+    Failure,
+};
+
+struct MediaMeta {
+    size_t size;
+    crypto::Sha256 digest;
+};
+
+struct MediaListEntry {
+    MediaType type;
+    std::string key;
+};
+
+/**
+ * \brief API implementation
+ *
+ * Bunch of callbacks called by the API server.
+ *
+ * See doc/rest.md for API specification
+ * */
+class ApiV1 : public Virtual {
+ public:
+    // /_ping
+    virtual void ping() {}
+
+    virtual MediaMeta get_media(MediaType type, std::string_view key) = 0;
+
+    /**
+     * \brief Media upload
+     * */
+    virtual void put_media(
+        MediaType type, std::string_view key,
+        std::function<void(std::span<const uint8_t>)> body) = 0;
+
+    /**
+     * \brief Delete a media
+     *
+     * \return
+     *    Success - deleted
+     *    Scheduled - marked for deletion and will be done later
+     *    Failed - does not exist
+     * */
+    virtual DeleteResult delete_media(MediaType type, std::string_view key) = 0;
+
+    /**
+     * \brief List all get_medias
+     *
+     * \param type Whether to list images or videos or both (if std::nullopt).
+     *
+     * \return List of medias
+     * */
+    virtual std::vector<MediaListEntry> get_medias(
+        std::optional<MediaType> type) = 0;
+
+    /**
+     * \brief Play medias
+     *
+     * \param medias List of medias to play
+     * */
+    virtual void play(const std::vector<MediaListEntry>& medias,
+                      bool replay) = 0;
+};
+
+class ApiServer : public Virtual {
+ public:
+    virtual void run() = 0;
+};
+
+std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind);
+
+}  // namespace plai::net

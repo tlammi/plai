@@ -89,6 +89,9 @@ class Server::Impl {
 };
 
 Server::Server(std::unique_ptr<Impl> impl) : m_impl(std::move(impl)) {}
+
+Server::Server(Server&&) noexcept = default;
+Server& Server::operator=(Server&&) noexcept = default;
 Server::~Server() {}
 
 void Server::run() { m_impl->run(); }
