@@ -11,6 +11,46 @@ namespace http = beast::http;
 namespace fs = std::filesystem;
 namespace {
 
+constexpr std::optional<Method> convert_boost_verb(http::verb v) {
+    switch (v) {
+        case boost::beast::http::verb::get: return METHOD_GET;
+        case boost::beast::http::verb::delete_: return METHOD_DELETE;
+        case boost::beast::http::verb::post: return METHOD_POST;
+        case boost::beast::http::verb::put: return METHOD_PUT;
+        case boost::beast::http::verb::unknown:
+        case boost::beast::http::verb::head:
+        case boost::beast::http::verb::connect:
+        case boost::beast::http::verb::options:
+        case boost::beast::http::verb::trace:
+        case boost::beast::http::verb::copy:
+        case boost::beast::http::verb::lock:
+        case boost::beast::http::verb::mkcol:
+        case boost::beast::http::verb::move:
+        case boost::beast::http::verb::propfind:
+        case boost::beast::http::verb::proppatch:
+        case boost::beast::http::verb::search:
+        case boost::beast::http::verb::unlock:
+        case boost::beast::http::verb::bind:
+        case boost::beast::http::verb::rebind:
+        case boost::beast::http::verb::unbind:
+        case boost::beast::http::verb::acl:
+        case boost::beast::http::verb::report:
+        case boost::beast::http::verb::mkactivity:
+        case boost::beast::http::verb::checkout:
+        case boost::beast::http::verb::merge:
+        case boost::beast::http::verb::msearch:
+        case boost::beast::http::verb::notify:
+        case boost::beast::http::verb::subscribe:
+        case boost::beast::http::verb::unsubscribe:
+        case boost::beast::http::verb::patch:
+        case boost::beast::http::verb::purge:
+        case boost::beast::http::verb::mkcalendar:
+        case boost::beast::http::verb::link:
+        case boost::beast::http::verb::unlink: break;
+    }
+    return std::nullopt;
+}
+
 struct ServiceKey {
     std::string pattern;
     Method methods;
@@ -67,7 +107,15 @@ class Server::Impl {
         http::request<http::string_body> req{};
         http::read(stream, buf, req);
         auto target_str = std::string_view(req.target());
+        auto verb = convert_boost_verb(req.method());
+        if (!verb) {
+            http::write(stream, make_boost_response(
+                                    Response{.body = "Unsupported method",
+                                             .status_code = PLAI_HTTP(405)},
+                                    req.version()));
+        }
         for (const auto& [key, handler] : m_services) {
+            if (!(key.methods & *verb)) continue;
             auto tgt = parse_target(key.pattern, target_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);

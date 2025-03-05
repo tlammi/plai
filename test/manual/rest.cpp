@@ -12,9 +12,8 @@ class Api final : public plai::net::ApiV1 {
     void ping() override {}
     MediaMeta get_media(MediaType type, std::string_view key) override {}
 
-    void put_media(
-        MediaType type, std::string_view key,
-        std::function<void(std::span<const uint8_t>)> body) override {}
+    void put_media(MediaType type, std::string_view key,
+                   std::function<std::span<const uint8_t>()> body) override {}
 
     DeleteResult delete_media(MediaType type, std::string_view key) override {}
 

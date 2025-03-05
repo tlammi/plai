@@ -11,6 +11,12 @@ enum class MediaType {
     Video,
 };
 
+constexpr std::optional<MediaType> parse_media_type(std::string_view name) {
+    if (name == "image") return MediaType::Image;
+    if (name == "video") return MediaType::Video;
+    return std::nullopt;
+}
+
 enum class DeleteResult {
     Success,
     Scheduled,
@@ -44,9 +50,8 @@ class ApiV1 : public Virtual {
     /**
      * \brief Media upload
      * */
-    virtual void put_media(
-        MediaType type, std::string_view key,
-        std::function<void(std::span<const uint8_t>)> body) = 0;
+    virtual void put_media(MediaType type, std::string_view key,
+                           std::function<std::span<const uint8_t>()> body) = 0;
 
     /**
      * \brief Delete a media
