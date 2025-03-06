@@ -11,6 +11,8 @@ namespace http = beast::http;
 namespace fs = std::filesystem;
 namespace {
 
+constexpr size_t CHUNK_SIZE = 10 * 1024 * 1024;
+
 constexpr std::optional<Method> convert_boost_verb(http::verb v) {
     switch (v) {
         case boost::beast::http::verb::get: return METHOD_GET;
@@ -103,25 +105,50 @@ class Server::Impl {
         acceptor.accept(sock);
         auto stream =
             beast::basic_stream<local::stream_protocol>(std::move(sock));
+        http::request_parser<http::buffer_body> parser{};
+        parser.body_limit(std::numeric_limits<uint64_t>::max());
+
         beast::flat_buffer buf{};
-        http::request<http::string_body> req{};
-        http::read(stream, buf, req);
-        auto target_str = std::string_view(req.target());
-        auto verb = convert_boost_verb(req.method());
+        http::read_header(stream, buf, parser);
+        auto tgt_str = std::string(parser.get().target());
+        auto verb = convert_boost_verb(parser.get().method());
+        auto ver = parser.get().version();
+        PLAI_DEBUG(
+            "transfer encoding: {}",
+            std::string_view(parser.get()[http::field::transfer_encoding]));
         if (!verb) {
             http::write(stream, make_boost_response(
                                     Response{.body = "Unsupported method",
                                              .status_code = PLAI_HTTP(405)},
-                                    req.version()));
+                                    ver));
+            return;
         }
         for (const auto& [key, handler] : m_services) {
             if (!(key.methods & *verb)) continue;
-            auto tgt = parse_target(key.pattern, target_str);
+            auto tgt = parse_target(key.pattern, tgt_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);
+                boost::system::error_code ec{};
+                std::vector<uint8_t> body{};
+                auto body_buf =
+                    std::make_unique<std::array<uint8_t, CHUNK_SIZE>>();
+                while (!parser.is_done()) {
+                    parser.get().body().data = body_buf->data();
+                    parser.get().body().size = body_buf->size();
+                    http::read(stream, buf, parser, ec);
+                    if (ec && ec != http::error::need_buffer) {
+                        throw boost::system::system_error(ec);
+                    }
+                    PLAI_DEBUG("got chunk with size: {}",
+                               parser.get().body().size);
+                    body.insert(body.end(), body_buf->begin(),
+                                body_buf->begin() + parser.get().body().size);
+                }
                 auto resp = handler(
-                    Request{.target = *std::move(tgt), .body = req.body()});
-                auto boost_resp = make_boost_response(resp, req.version());
+                    Request{.target = *std::move(tgt),
+                            .body = {reinterpret_cast<char*>(body.data()),
+                                     body.size()}});
+                auto boost_resp = make_boost_response(resp, ver);
                 http::write(stream, boost_resp);
                 return;
             }
@@ -129,7 +156,7 @@ class Server::Impl {
         http::write(stream,
                     make_boost_response(Response{.body = "Not found",
                                                  .status_code = PLAI_HTTP(404)},
-                                        req.version()));
+                                        ver));
     }
 
     fs::path m_sock;
