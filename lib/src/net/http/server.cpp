@@ -11,8 +11,6 @@ namespace http = beast::http;
 namespace fs = std::filesystem;
 namespace {
 
-constexpr size_t CHUNK_SIZE = 10 * 1024 * 1024;
-
 constexpr std::optional<Method> convert_boost_verb(http::verb v) {
     switch (v) {
         case boost::beast::http::verb::get: return METHOD_GET;
@@ -80,17 +78,65 @@ http::response<http::string_body> make_boost_response(const Response& resp,
 }
 }  // namespace
 
+struct ParsingCtx {
+    static constexpr size_t CHUNK_SIZE = 10 * 1024 * 1024;
+    beast::flat_buffer flat_buf{};
+    beast::basic_stream<local::stream_protocol> stream;
+    http::request_parser<http::buffer_body> parser{};
+    std::vector<uint8_t> buf{};
+    unsigned http_version{};
+
+    explicit ParsingCtx(
+        beast::basic_stream<local::stream_protocol> stream) noexcept
+        : stream(std::move(stream)) {
+        parser.body_limit(std::numeric_limits<size_t>::max());
+    }
+
+    void read_header() {
+        http::read_header(stream, flat_buf, parser);
+        http_version = parser.get().version();
+    }
+
+    bool is_done() const noexcept { return parser.is_done(); }
+
+    // append next chunk to buf
+    boost::system::error_code read_next() noexcept {
+        auto old_size = buf.size();
+        buf.resize(old_size + CHUNK_SIZE);
+        boost::system::error_code ec{};
+        parser.get().body().data = buf.data() + old_size;  // NOLINT
+        parser.get().body().size = buf.size() - old_size;
+        http::read(stream, flat_buf, parser, ec);
+        if (ec == http::error::need_buffer) ec = {};
+        return ec;
+    }
+
+    void respond(const Response& resp) {
+        boost::system::error_code ec{};
+        http::write(stream, make_boost_response(resp, http_version), ec);
+        if (ec) PLAI_WARN("failed to respond: '{}'", ec.message());
+    }
+};
+
 // wrapper for beast parser, allows lazy reading
 class RequestImpl final : public Request {
-    Target m_target{};
-    std::string_view m_body{};
+    const Target* m_tgt{};
+    ParsingCtx* m_ctx{};
+    std::vector<uint8_t>* m_buf{};
 
  public:
-    Target& target() noexcept { return m_target; }
-    std::string_view& text() noexcept { return m_body; }
+    explicit RequestImpl(const Target& tgt, ParsingCtx& ctx,
+                         std::vector<uint8_t>& buf) noexcept
+        : m_tgt(&tgt), m_ctx(&ctx), m_buf(&buf) {}
 
-    const Target& target() const noexcept override { return m_target; }
-    std::string_view text() const noexcept override { return m_body; }
+    const Target& target() const noexcept override { return *m_tgt; }
+    std::string_view text() const override {
+        while (!m_ctx->is_done()) {
+            auto ec = m_ctx->read_next();
+            if (ec) throw boost::system::system_error(ec);
+        }
+        return {reinterpret_cast<const char*>(m_buf->data()), m_buf->size()};
+    }
 };
 
 class Server::Impl {
@@ -116,24 +162,18 @@ class Server::Impl {
               local::stream_protocol::acceptor& acceptor) {
         auto sock = local::stream_protocol::socket(ioc);
         acceptor.accept(sock);
-        auto stream =
-            beast::basic_stream<local::stream_protocol>(std::move(sock));
-        http::request_parser<http::buffer_body> parser{};
-        parser.body_limit(std::numeric_limits<uint64_t>::max());
+        auto ctx = ParsingCtx(
+            beast::basic_stream<local::stream_protocol>(std::move(sock)));
 
-        beast::flat_buffer buf{};
-        http::read_header(stream, buf, parser);
-        auto tgt_str = std::string(parser.get().target());
-        auto verb = convert_boost_verb(parser.get().method());
-        auto ver = parser.get().version();
+        ctx.read_header();
+        auto tgt_str = std::string(ctx.parser.get().target());
+        auto verb = convert_boost_verb(ctx.parser.get().method());
         PLAI_DEBUG(
             "transfer encoding: {}",
-            std::string_view(parser.get()[http::field::transfer_encoding]));
+            std::string_view(ctx.parser.get()[http::field::transfer_encoding]));
         if (!verb) {
-            http::write(stream, make_boost_response(
-                                    Response{.body = "Unsupported method",
-                                             .status_code = PLAI_HTTP(405)},
-                                    ver));
+            ctx.respond(
+                {.body = "Unsupported method", .status_code = PLAI_HTTP(405)});
             return;
         }
         for (const auto& [key, handler] : m_services) {
@@ -141,36 +181,13 @@ class Server::Impl {
             auto tgt = parse_target(key.pattern, tgt_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);
-                boost::system::error_code ec{};
-                std::vector<uint8_t> body{};
-                auto body_buf =
-                    std::make_unique<std::array<uint8_t, CHUNK_SIZE>>();
-                while (!parser.is_done()) {
-                    parser.get().body().data = body_buf->data();
-                    parser.get().body().size = body_buf->size();
-                    http::read(stream, buf, parser, ec);
-                    if (ec && ec != http::error::need_buffer) {
-                        throw boost::system::system_error(ec);
-                    }
-                    PLAI_DEBUG("got chunk with size: {}",
-                               parser.get().body().size);
-                    body.insert(body.end(), body_buf->begin(),
-                                body_buf->begin() + parser.get().body().size);
-                }
-                auto r = RequestImpl();
-                r.target() = *std::move(tgt);
-                r.text() = {reinterpret_cast<const char*>(body.data()),
-                            body.size()};
-                auto resp = handler(r);
-                auto boost_resp = make_boost_response(resp, ver);
-                http::write(stream, boost_resp);
-                return;
+                std::vector<uint8_t> buf{};
+                RequestImpl req{*tgt, ctx, buf};
+                auto resp = handler(req);
+                ctx.respond(resp);
             }
         }
-        http::write(stream,
-                    make_boost_response(Response{.body = "Not found",
-                                                 .status_code = PLAI_HTTP(404)},
-                                        ver));
+        ctx.respond({.body = "Not found", .status_code = PLAI_HTTP(404)});
     }
 
     fs::path m_sock;
