@@ -50,8 +50,9 @@ class ApiV1 : public Virtual {
     /**
      * \brief Media upload
      * */
-    virtual void put_media(MediaType type, std::string_view key,
-                           std::function<std::span<const uint8_t>()> body) = 0;
+    virtual void put_media(
+        MediaType type, std::string_view key,
+        std::function<std::optional<std::span<const uint8_t>>()> body) = 0;
 
     /**
      * \brief Delete a media

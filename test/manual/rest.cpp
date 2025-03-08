@@ -13,7 +13,8 @@ class Api final : public plai::net::ApiV1 {
     MediaMeta get_media(MediaType type, std::string_view key) override {}
 
     void put_media(MediaType type, std::string_view key,
-                   std::function<std::span<const uint8_t>()> body) override {}
+                   std::function<std::optional<std::span<const uint8_t>>()>
+                       body) override {}
 
     DeleteResult delete_media(MediaType type, std::string_view key) override {}
 

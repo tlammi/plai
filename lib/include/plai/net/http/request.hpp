@@ -6,8 +6,13 @@
 
 namespace plai::net::http {
 
-struct Request {
-    Target target{};
-    std::string_view body;
+class Request {
+ public:
+    virtual const Target& target() const = 0;
+
+    virtual std::string_view text() const = 0;
+
+ protected:
+    constexpr ~Request() = default;
 };
 }  // namespace plai::net::http

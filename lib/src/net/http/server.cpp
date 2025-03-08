@@ -80,6 +80,19 @@ http::response<http::string_body> make_boost_response(const Response& resp,
 }
 }  // namespace
 
+// wrapper for beast parser, allows lazy reading
+class RequestImpl final : public Request {
+    Target m_target{};
+    std::string_view m_body{};
+
+ public:
+    Target& target() noexcept { return m_target; }
+    std::string_view& text() noexcept { return m_body; }
+
+    const Target& target() const noexcept override { return m_target; }
+    std::string_view text() const noexcept override { return m_body; }
+};
+
 class Server::Impl {
  public:
     Impl(std::string socket, ServiceMap services)
@@ -144,10 +157,11 @@ class Server::Impl {
                     body.insert(body.end(), body_buf->begin(),
                                 body_buf->begin() + parser.get().body().size);
                 }
-                auto resp = handler(
-                    Request{.target = *std::move(tgt),
-                            .body = {reinterpret_cast<char*>(body.data()),
-                                     body.size()}});
+                auto r = RequestImpl();
+                r.target() = *std::move(tgt);
+                r.text() = {reinterpret_cast<const char*>(body.data()),
+                            body.size()};
+                auto resp = handler(r);
                 auto boost_resp = make_boost_response(resp, ver);
                 http::write(stream, boost_resp);
                 return;
