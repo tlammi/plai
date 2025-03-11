@@ -99,15 +99,20 @@ struct ParsingCtx {
 
     bool is_done() const noexcept { return parser.is_done(); }
 
-    // append next chunk to buf
     boost::system::error_code read_next() noexcept {
-        auto old_size = buf.size();
-        buf.resize(old_size + CHUNK_SIZE);
+        // append next chunk to buf
+        auto offset = buf.size();
+        buf.resize(buf.size() + CHUNK_SIZE);
+        auto& body = parser.get().body();
+        body.data = &buf.at(offset);
+        body.size = buf.size() - offset;
         boost::system::error_code ec{};
-        parser.get().body().data = buf.data() + old_size;  // NOLINT
-        parser.get().body().size = buf.size() - old_size;
         http::read(stream, flat_buf, parser, ec);
-        if (ec == http::error::need_buffer) ec = {};
+        if (!ec || ec == http::error::need_buffer) {
+            const auto unused = body.size;
+            buf.resize(buf.size() - unused);
+            ec = {};
+        }
         return ec;
     }
 
@@ -122,12 +127,10 @@ struct ParsingCtx {
 class RequestImpl final : public Request {
     const Target* m_tgt{};
     ParsingCtx* m_ctx{};
-    std::vector<uint8_t>* m_buf{};
 
  public:
-    explicit RequestImpl(const Target& tgt, ParsingCtx& ctx,
-                         std::vector<uint8_t>& buf) noexcept
-        : m_tgt(&tgt), m_ctx(&ctx), m_buf(&buf) {}
+    explicit RequestImpl(const Target& tgt, ParsingCtx& ctx) noexcept
+        : m_tgt(&tgt), m_ctx(&ctx) {}
 
     const Target& target() const noexcept override { return *m_tgt; }
     std::string_view text() const override {
@@ -135,7 +138,18 @@ class RequestImpl final : public Request {
             auto ec = m_ctx->read_next();
             if (ec) throw boost::system::system_error(ec);
         }
-        return {reinterpret_cast<const char*>(m_buf->data()), m_buf->size()};
+        return {reinterpret_cast<const char*>(m_ctx->buf.data()),
+                m_ctx->buf.size()};
+    }
+
+    std::optional<std::string_view> text_chunked() const override {
+        m_ctx->buf.clear();
+        if (m_ctx->is_done()) return std::nullopt;
+        auto ec = m_ctx->read_next();
+        if (ec) throw boost::system::system_error(ec);
+        return std::string_view{
+            reinterpret_cast<const char*>(m_ctx->buf.data()),
+            m_ctx->buf.size()};
     }
 };
 
@@ -181,8 +195,7 @@ class Server::Impl {
             auto tgt = parse_target(key.pattern, tgt_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);
-                std::vector<uint8_t> buf{};
-                RequestImpl req{*tgt, ctx, buf};
+                RequestImpl req{*tgt, ctx};
                 auto resp = handler(req);
                 ctx.respond(resp);
             }

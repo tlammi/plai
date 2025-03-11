@@ -26,29 +26,19 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                              .status_code = PLAI_HTTP(200),
                          };
                      })
-            .service(
-                "/media/{type}/{name}", http::METHOD_PUT,
-                [api](const http::Request& req) -> http::Response {
-                    auto type =
-                        parse_media_type(req.target().params().at("type"));
-                    if (!type) {
-                        return {.body = "invalid media type",
-                                .status_code = PLAI_HTTP(400)};
-                    }
-                    auto name = req.target().params().at("name");
-                    auto body = req.text();  // TODO: Should be data()
-                    bool called = false;
-                    api->put_media(
-                        *type, name,
-                        [&]() -> std::optional<std::span<const uint8_t>> {
-                            if (called) return std::nullopt;
-                            called = true;
-                            return std::span<const uint8_t>{
-                                reinterpret_cast<const uint8_t*>(body.data()),
-                                body.size()};
-                        });
-                    return {.body = "done", .status_code = PLAI_HTTP(200)};
-                })
+            .service("/media/{type}/{name}", http::METHOD_PUT,
+                     [api](const http::Request& req) -> http::Response {
+                         auto type =
+                             parse_media_type(req.target().params().at("type"));
+                         if (!type) {
+                             return {.body = "invalid media type",
+                                     .status_code = PLAI_HTTP(400)};
+                         }
+                         auto name = req.target().params().at("name");
+                         api->put_media(*type, name,
+                                        [&]() { return req.data_chunked(); });
+                         return {.body = "done", .status_code = PLAI_HTTP(200)};
+                     })
             .commit());
 }
 
