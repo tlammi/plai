@@ -1,12 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <plai/net/http/method.hpp>
 #include <plai/net/http/target.hpp>
 
 namespace plai::net::http {
 
 class Request {
  public:
+    virtual Method method() const noexcept = 0;
     virtual const Target& target() const = 0;
 
     // TODO: make not const

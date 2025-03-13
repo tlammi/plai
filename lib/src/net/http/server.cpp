@@ -125,12 +125,16 @@ struct ParsingCtx {
 
 // wrapper for beast parser, allows lazy reading
 class RequestImpl final : public Request {
+    Method m_verb{};
     const Target* m_tgt{};
     ParsingCtx* m_ctx{};
 
  public:
-    explicit RequestImpl(const Target& tgt, ParsingCtx& ctx) noexcept
-        : m_tgt(&tgt), m_ctx(&ctx) {}
+    explicit RequestImpl(Method verb, const Target& tgt,
+                         ParsingCtx& ctx) noexcept
+        : m_verb{verb}, m_tgt(&tgt), m_ctx(&ctx) {}
+
+    Method method() const noexcept override { return m_verb; }
 
     const Target& target() const noexcept override { return *m_tgt; }
     std::string_view text() const override {
@@ -195,7 +199,7 @@ class Server::Impl {
             auto tgt = parse_target(key.pattern, tgt_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);
-                RequestImpl req{*tgt, ctx};
+                RequestImpl req{*verb, *tgt, ctx};
                 auto resp = handler(req);
                 ctx.respond(resp);
             }
