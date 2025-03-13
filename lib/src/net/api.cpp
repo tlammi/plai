@@ -1,3 +1,4 @@
+#include <plai/logs/logs.hpp>
 #include <plai/net/api.hpp>
 #include <plai/net/http/server.hpp>
 #include <utility>
@@ -102,6 +103,14 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          auto res = api->get_medias(type);
                          return {.body = to_str(res),
                                  .status_code = PLAI_HTTP(200)};
+                     })
+            .service("/play", http::METHOD_POST,
+                     [api](const http::Request& req) -> http::Response {
+                         // TODO: Support query parameters
+                         auto text = req.text();
+                         PLAI_DEBUG("got playlist: '{}'", text);
+                         api->play({}, false);
+                         return {.body = "Not Implemented", .status_code = 501};
                      })
             .commit());
 }

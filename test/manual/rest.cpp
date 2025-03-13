@@ -69,6 +69,9 @@ class Api final : public plai::net::ApiV1 {
     }
 
     void play(const std::vector<MediaListEntry>& medias, bool replay) override {
+        (void)medias;
+        (void)replay;
+        std::println(stderr, "play called");
     }
 
  private:
