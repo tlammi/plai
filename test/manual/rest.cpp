@@ -16,7 +16,14 @@ class Api final : public plai::net::ApiV1 {
 
     void ping() override {}
 
-    MediaMeta get_media(MediaType type, std::string_view key) override {}
+    MediaMeta get_media(MediaType type, std::string_view key) override {
+        auto s = std::format("{}/{}", magic_enum::enum_name(type), key);
+        auto res = m_store->inspect(s);
+        return {
+            .size = res->bytes,
+            .digest = res->sha256,
+        };
+    }
 
     void put_media(MediaType type, std::string_view key,
                    std::function<std::optional<std::span<const uint8_t>>()>

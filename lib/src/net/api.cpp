@@ -28,7 +28,8 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          };
                      })
             .service(
-                "/media/{type}/{name}", http::METHOD_PUT | http::METHOD_DELETE,
+                "/media/{type}/{name}",
+                http::METHOD_GET | http::METHOD_PUT | http::METHOD_DELETE,
                 [api](const http::Request& req) -> http::Response {
                     auto type =
                         parse_media_type(req.target().params().at("type"));
@@ -37,11 +38,19 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                                 .status_code = PLAI_HTTP(400)};
                     }
                     auto name = req.target().params().at("name");
+                    if (req.method() == http::METHOD_GET) {
+                        auto meta = api->get_media(*type, name);
+                        return {
+                            .body = std::format(
+                                R"({{"digest": "sha256": "{}", "size": {}}})",
+                                crypto::hex_str(meta.digest), meta.size)};
+                    }
                     if (req.method() == http::METHOD_PUT) {
                         api->put_media(*type, name,
                                        [&]() { return req.data_chunked(); });
                         return {.body = "done", .status_code = PLAI_HTTP(200)};
-                    } else if (req.method() == http::METHOD_DELETE) {
+                    }
+                    if (req.method() == http::METHOD_DELETE) {
                         auto res = api->delete_media(*type, name);
 
                         using enum net::DeleteResult;
