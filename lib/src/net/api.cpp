@@ -3,6 +3,22 @@
 #include <utility>
 
 namespace plai::net {
+namespace {
+std::string to_str(const MediaListEntry& v) {
+    return std::format(R"({{"type": "{}", "key": "{}"}})",
+                       serialize_media_type(v.type), v.key);
+}
+std::string to_str(const std::vector<MediaListEntry>& v) {
+    std::string res = {"["};
+    for (const auto& e : v) { res += to_str(e) + ","; }
+    if (res.size() > 1)
+        res.back() = ']';
+    else
+        res.push_back(']');
+    return res;
+}
+
+}  // namespace
 class ServerImpl final : public ApiServer {
  public:
     constexpr explicit ServerImpl(http::Server srv) noexcept
@@ -40,10 +56,9 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                     auto name = req.target().params().at("name");
                     if (req.method() == http::METHOD_GET) {
                         auto meta = api->get_media(*type, name);
-                        return {
-                            .body = std::format(
-                                R"({{"digest": "sha256": "{}", "size": {}}})",
-                                crypto::hex_str(meta.digest), meta.size)};
+                        return {.body = std::format(
+                                    R"({{"digest": "sha256:{}", "size": {}}})",
+                                    crypto::hex_str(meta.digest), meta.size)};
                     }
                     if (req.method() == http::METHOD_PUT) {
                         api->put_media(*type, name,
@@ -70,6 +85,13 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                     return {.body = "Unhandled HTTP method",
                             .status_code = PLAI_HTTP(500)};
                 })
+            .service("/media", http::METHOD_GET,
+                     [api](const http::Request& req) -> http::Response {
+                         (void)req;
+                         auto res = api->get_medias(std::nullopt);
+                         return {.body = to_str(res),
+                                 .status_code = PLAI_HTTP(200)};
+                     })
             .commit());
 }
 

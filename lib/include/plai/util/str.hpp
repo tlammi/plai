@@ -29,6 +29,10 @@ constexpr std::string to_lower(std::string s) {
     return s;
 }
 
+constexpr std::string to_lower(std::string_view s) {
+    return to_lower(std::string(s));
+}
+
 constexpr auto to_hex_str(std::span<const uint8_t> span) {
     std::string out(span.size() * 2, '\0');
     size_t idx = 0;

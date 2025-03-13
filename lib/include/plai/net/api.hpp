@@ -17,6 +17,14 @@ constexpr std::optional<MediaType> parse_media_type(std::string_view name) {
     return std::nullopt;
 }
 
+constexpr std::string_view serialize_media_type(MediaType t) {
+    using enum MediaType;
+    switch (t) {
+        case MediaType::Image: return "image";
+        case MediaType::Video: return "video";
+    }
+}
+
 enum class DeleteResult {
     Success,
     Scheduled,

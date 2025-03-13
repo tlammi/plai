@@ -2,6 +2,7 @@
 #include <plai/net/api.hpp>
 #include <plai/store.hpp>
 #include <plai/thirdparty/magic_enum.hpp>
+#include <plai/util/str.hpp>
 #include <print>
 
 using plai::Store;
@@ -17,7 +18,8 @@ class Api final : public plai::net::ApiV1 {
     void ping() override {}
 
     MediaMeta get_media(MediaType type, std::string_view key) override {
-        auto s = std::format("{}/{}", magic_enum::enum_name(type), key);
+        auto s =
+            std::format("{}/{}", plai::net::serialize_media_type(type), key);
         auto res = m_store->inspect(s);
         return {
             .size = res->bytes,
@@ -35,13 +37,15 @@ class Api final : public plai::net::ApiV1 {
             buf.insert(buf.end(), r->begin(), r->end());
         }
         std::println(stderr, "received total {} bytes", buf.size());
-        auto s = std::format("{}/{}", magic_enum::enum_name(type), key);
+        auto s =
+            std::format("{}/{}", plai::net::serialize_media_type(type), key);
         std::println(stderr, "storing as {}", s);
         m_store->store(s, buf);
     }
 
     DeleteResult delete_media(MediaType type, std::string_view key) override {
-        auto s = std::format("{}/{}", magic_enum::enum_name(type), key);
+        auto s =
+            std::format("{}/{}", plai::net::serialize_media_type(type), key);
         std::println(stderr, "deleting {}", s);
         // TODO: cannot get info whether was deleted. Do something
         m_store->remove(s);
@@ -49,7 +53,20 @@ class Api final : public plai::net::ApiV1 {
     }
 
     std::vector<MediaListEntry> get_medias(
-        std::optional<MediaType> type) override {}
+        std::optional<MediaType> type) override {
+        auto entries = m_store->list();
+        std::vector<MediaListEntry> out{};
+        out.reserve(entries.size());
+        for (const auto& e : entries) {
+            auto [type_name, key] = plai::split_left(e, "/");
+            auto type_v = plai::net::parse_media_type(type_name);
+            if (!type_v)
+                throw std::runtime_error(
+                    "Corrupted database: Invalid key prefix");
+            out.emplace_back(*type_v, std::string(key));
+        }
+        return out;
+    }
 
     void play(const std::vector<MediaListEntry>& medias, bool replay) override {
     }
