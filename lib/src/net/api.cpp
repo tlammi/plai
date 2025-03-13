@@ -110,7 +110,8 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          auto text = req.text();
                          PLAI_DEBUG("got playlist: '{}'", text);
                          api->play({}, false);
-                         return {.body = "Not Implemented", .status_code = 501};
+                         return {.body = "Not Implemented",
+                                 .status_code = PLAI_HTTP(501)};
                      })
             .commit());
 }
