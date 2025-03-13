@@ -57,7 +57,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                     if (req.method() == http::METHOD_GET) {
                         auto meta = api->get_media(*type, name);
                         return {.body = std::format(
-                                    R"({{"digest": "sha256:{}", "size": {}}})",
+                                    R"({{"digest":"sha256:{}","size":{}}})",
                                     crypto::hex_str(meta.digest), meta.size)};
                     }
                     if (req.method() == http::METHOD_PUT) {
