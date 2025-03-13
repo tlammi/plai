@@ -92,6 +92,17 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          return {.body = to_str(res),
                                  .status_code = PLAI_HTTP(200)};
                      })
+            .service("/media/{type}", http::METHOD_GET,
+                     [api](const http::Request& req) -> http::Response {
+                         auto type =
+                             parse_media_type(req.target().params().at("type"));
+                         if (!type)
+                             return {.body = "invalid media type",
+                                     .status_code = PLAI_HTTP(400)};
+                         auto res = api->get_medias(type);
+                         return {.body = to_str(res),
+                                 .status_code = PLAI_HTTP(200)};
+                     })
             .commit());
 }
 

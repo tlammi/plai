@@ -4,6 +4,7 @@
 #include <memory>
 #include <plai/store.hpp>
 #include <plai/virtual.hpp>
+#include <utility>
 
 namespace plai::net {
 enum class MediaType {
@@ -23,6 +24,7 @@ constexpr std::string_view serialize_media_type(MediaType t) {
         case MediaType::Image: return "image";
         case MediaType::Video: return "video";
     }
+    std::unreachable();
 }
 
 enum class DeleteResult {
