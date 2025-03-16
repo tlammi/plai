@@ -8,6 +8,8 @@
 #include <utility>
 
 namespace plai::net {
+// TODO: There should be a better place for this
+// Maybe under media/?
 enum class MediaType {
     Image,
     Video,

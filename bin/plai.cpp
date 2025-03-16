@@ -5,23 +5,86 @@
 
 namespace plaibin {
 
+plai::media::Media mk_media(plai::net::MediaType t, auto data) {
+    using enum plai::net::MediaType;
+    switch (t) {
+        case Video: return plai::media::Video(std::move(data));
+        case Image: return plai::media::Video(std::move(data));
+    }
+    std::unreachable();
+}
+
+plai::media::Media read_media(plai::Store& store,
+                              const plai::net::MediaListEntry& entry) {
+    const auto& [type, key] = entry;
+    auto full_key =
+        std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    return mk_media(type, store.read(full_key));
+}
+
+class Playlist final : public plai::play::MediaSrc {
+    std::mutex m_mut{};
+    plai::Store* m_store;
+    std::vector<plai::net::MediaListEntry> m_keys{};
+    size_t m_idx{0};
+    bool m_repeat{true};
+
+ public:
+    Playlist(plai::Store* store) : m_store(store) { assert(store); }
+
+    bool set_entries(std::vector<plai::net::MediaListEntry> entries) {
+        auto keys = std::vector<std::string>();
+        auto lk = std::lock_guard(m_mut);
+        m_keys = std::move(entries);
+        // TODO: Check that entries actually exist and lock them
+        m_idx = 0;
+        return true;
+    }
+    void set_repeat(bool val) {
+        auto lk = std::lock_guard(m_mut);
+        m_repeat = val;
+    }
+
+    std::optional<plai::media::Media> next_media() override {
+        auto lk = std::lock_guard(m_mut);
+        if (m_keys.empty()) return std::nullopt;
+        if (m_idx >= m_keys.size()) {
+            if (!m_repeat) return std::nullopt;
+            m_idx = 0;
+        }
+        return read_media(*m_store, m_keys.at(std::exchange(m_idx, m_idx + 1)));
+    }
+};
+
 class ApiImpl : public plai::net::DefaultApi {
     using Parent = plai::net::DefaultApi;
 
- public:
-    explicit ApiImpl(plai::Store* store) : Parent(store) {}
+    Playlist* m_playlist;
 
+ public:
+    ApiImpl(plai::Store* store, Playlist* playlist)
+        : Parent(store), m_playlist(playlist) {
+        assert(playlist);
+    }
     void play(const std::vector<plai::net::MediaListEntry>& medias,
               bool replay) override {
-        std::println(stderr, "'/play' not implemented");
+        m_playlist->set_entries(medias);
+        m_playlist->set_repeat(replay);
+        // TODO: indicate success/failure...
     }
 };
 
 int run(const Cli& args) {
     auto store = plai::sqlite_store(args.db);
-    auto api = ApiImpl(store.get());
+    auto playlist = Playlist(store.get());
+    auto api = ApiImpl(store.get(), &playlist);
     auto srv = plai::net::launch_api(&api, args.socket);
-    srv->run();
+    auto srv_thread = std::jthread([&] { srv->run(); });
+    auto frontend = plai::frontend(plai::FrontendType::Sdl2);
+    auto opts = plai::play::PlayerOpts{.wait_media = true};
+    auto player = plai::play::Player(
+        frontend.get(), &playlist, plai::play::PlayerOpts{.wait_media = true});
+    player.run();
     return 0;
 }
 

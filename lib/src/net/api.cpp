@@ -2,6 +2,7 @@
 #include <plai/net/api.hpp>
 #include <plai/net/http/server.hpp>
 #include <plai/util/str.hpp>
+#include <rfl/json.hpp>
 #include <utility>
 
 namespace plai::net {
@@ -20,6 +21,24 @@ std::string to_str(const std::vector<MediaListEntry>& v) {
     return res;
 }
 
+std::optional<MediaListEntry> parse_media_list_entry(std::string_view value) {
+    auto [type_str, key] = split_left(value, "/");
+    auto type = parse_media_type(type_str);
+    if (!type) return std::nullopt;
+    return MediaListEntry{*type, std::string(key)};
+}
+
+std::optional<std::vector<MediaListEntry>> parse_media_list(
+    std::span<const std::string> media_list) {
+    auto out = std::vector<MediaListEntry>();
+    out.reserve(media_list.size());
+    for (const auto& str : media_list) {
+        auto entry = parse_media_list_entry(str);
+        if (!entry) return std::nullopt;
+        out.push_back(std::move(*entry));
+    }
+    return out;
+}
 }  // namespace
 class ServerImpl final : public ApiServer {
  public:
@@ -155,12 +174,22 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                      })
             .service("/play", http::METHOD_POST,
                      [api](const http::Request& req) -> http::Response {
+                         auto txt = req.text();
+                         PLAI_DEBUG("got playlist: {}", txt);
+                         auto parsed =
+                             rfl::json::read<std::vector<std::string>>(txt);
+                         if (!parsed) {
+                             return {.body = "Invalid playlist",
+                                     .status_code = PLAI_HTTP(400)};
+                         }
+                         auto list = parse_media_list(*parsed);
+                         if (!list) {
+                             return {.body = "Invalid playlist entry",
+                                     .status_code = PLAI_HTTP(400)};
+                         }
                          // TODO: Support query parameters
-                         auto text = req.text();
-                         PLAI_DEBUG("got playlist: '{}'", text);
-                         api->play({}, false);
-                         return {.body = "Not Implemented",
-                                 .status_code = PLAI_HTTP(501)};
+                         api->play(*list, false);
+                         return {.body = "OK", .status_code = PLAI_HTTP(200)};
                      })
             .commit());
 }
