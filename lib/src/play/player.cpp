@@ -1,3 +1,4 @@
+#include <plai/logs/logs.hpp>
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/play/player.hpp>
 #include <print>
@@ -108,7 +109,7 @@ class Player::Impl {
     }
 
     bool do_blend() {
-        std::println("blending");
+        PLAI_TRACE("blending");
         auto alpha_calc = AlphaCalc(m_opts.blend_dur);
         auto defer = Defer([&] {
             m_front_text->blend_mode(BlendMode::None);
