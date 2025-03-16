@@ -1,6 +1,7 @@
 #include <plai/logs/logs.hpp>
 #include <plai/net/api.hpp>
 #include <plai/net/http/server.hpp>
+#include <plai/util/str.hpp>
 #include <utility>
 
 namespace plai::net {
@@ -30,6 +31,54 @@ class ServerImpl final : public ApiServer {
  private:
     http::Server m_srv;
 };
+
+MediaMeta DefaultApi::get_media(MediaType type, std::string_view key) {
+    auto s = std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    auto res = m_store->inspect(s);
+    return {
+        .size = res->bytes,
+        .digest = res->sha256,
+    };
+}
+
+void DefaultApi::put_media(
+    MediaType type, std::string_view key,
+    std::function<std::optional<std::span<const uint8_t>>()> body) {
+    std::vector<uint8_t> buf{};
+    while (true) {
+        auto r = body();
+        if (!r) break;
+        buf.insert(buf.end(), r->begin(), r->end());
+    }
+    auto s = std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    PLAI_INFO("media {} with size {}", s, buf.size());
+    m_store->store(s, buf);
+}
+
+DeleteResult DefaultApi::delete_media(MediaType type, std::string_view key) {
+    auto s = std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    PLAI_INFO("deleting media {}", s);
+    // TODO: cannot get info whether was deleted. Do something
+    m_store->remove(s);
+    PLAI_WARN("checking remove result has not been implemented!!");
+    return DeleteResult::Success;
+}
+
+std::vector<MediaListEntry> DefaultApi::get_medias(
+    std::optional<MediaType> type) {
+    PLAI_TRACE("listing medias");
+    auto entries = m_store->list();
+    std::vector<MediaListEntry> out{};
+    out.reserve(entries.size());
+    for (const auto& e : entries) {
+        auto [type_name, key] = plai::split_left(e, "/");
+        auto type_v = plai::net::parse_media_type(type_name);
+        if (!type_v)
+            throw std::runtime_error("Corrupted database: Invalid key prefix");
+        out.emplace_back(*type_v, std::string(key));
+    }
+    return out;
+}
 
 std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
     return std::make_unique<ServerImpl>(

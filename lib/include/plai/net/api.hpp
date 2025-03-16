@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <plai/store.hpp>
@@ -89,8 +90,34 @@ class ApiV1 : public Virtual {
      *
      * \param medias List of medias to play
      * */
+    // TODO: Should this have a return value to indicate success/failure?
     virtual void play(const std::vector<MediaListEntry>& medias,
                       bool replay) = 0;
+};
+
+/**
+ * \brief API implementing the media storing
+ *
+ * This uses the given Store object to handle storage of the medias. The play()
+ * method is left for the user.
+ * */
+class DefaultApi : public ApiV1 {
+ public:
+    explicit DefaultApi(Store* store) : m_store(store) { assert(store); }
+
+    MediaMeta get_media(MediaType type, std::string_view key) override;
+
+    void put_media(
+        MediaType type, std::string_view key,
+        std::function<std::optional<std::span<const uint8_t>>()> body) override;
+
+    DeleteResult delete_media(MediaType type, std::string_view key) override;
+
+    std::vector<MediaListEntry> get_medias(
+        std::optional<MediaType> type) override;
+
+ private:
+    Store* m_store;
 };
 
 class ApiServer : public Virtual {

@@ -10,6 +10,7 @@ DEPS = [
   dependency('threads'),
   dependency('sqlite3'),
   dependency('openssl'),
+  reflectcpp_dep,
 ]
 
 SRCS = []
