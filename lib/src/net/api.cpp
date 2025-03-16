@@ -188,7 +188,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                                      .status_code = PLAI_HTTP(400)};
                          }
                          // TODO: Support query parameters
-                         api->play(*list, false);
+                         api->play(*list, true);
                          return {.body = "OK", .status_code = PLAI_HTTP(200)};
                      })
             .commit());
