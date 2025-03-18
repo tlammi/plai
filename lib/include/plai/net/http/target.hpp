@@ -23,7 +23,7 @@ class Target {
         return m_pars.at(param);
     }
 
-    const Params& params() const noexcept { return m_pars; }
+    const Params& path_params() const noexcept { return m_pars; }
 
     std::strong_ordering operator<=>(std::string_view other) const noexcept {
         return std::strong_ordering::equal;

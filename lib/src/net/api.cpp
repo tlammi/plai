@@ -117,12 +117,12 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                 http::METHOD_GET | http::METHOD_PUT | http::METHOD_DELETE,
                 [api](const http::Request& req) -> http::Response {
                     auto type =
-                        parse_media_type(req.target().params().at("type"));
+                        parse_media_type(req.target().path_params().at("type"));
                     if (!type) {
                         return {.body = "invalid media type",
                                 .status_code = PLAI_HTTP(400)};
                     }
-                    auto name = req.target().params().at("name");
+                    auto name = req.target().path_params().at("name");
                     if (req.method() == http::METHOD_GET) {
                         auto meta = api->get_media(*type, name);
                         return {.body = std::format(
@@ -161,17 +161,17 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          return {.body = to_str(res),
                                  .status_code = PLAI_HTTP(200)};
                      })
-            .service("/media/{type}", http::METHOD_GET,
-                     [api](const http::Request& req) -> http::Response {
-                         auto type =
-                             parse_media_type(req.target().params().at("type"));
-                         if (!type)
-                             return {.body = "invalid media type",
-                                     .status_code = PLAI_HTTP(400)};
-                         auto res = api->get_medias(type);
-                         return {.body = to_str(res),
-                                 .status_code = PLAI_HTTP(200)};
-                     })
+            .service(
+                "/media/{type}", http::METHOD_GET,
+                [api](const http::Request& req) -> http::Response {
+                    auto type =
+                        parse_media_type(req.target().path_params().at("type"));
+                    if (!type)
+                        return {.body = "invalid media type",
+                                .status_code = PLAI_HTTP(400)};
+                    auto res = api->get_medias(type);
+                    return {.body = to_str(res), .status_code = PLAI_HTTP(200)};
+                })
             .service("/play", http::METHOD_POST,
                      [api](const http::Request& req) -> http::Response {
                          auto txt = req.text();
