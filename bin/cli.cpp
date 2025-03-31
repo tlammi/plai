@@ -23,6 +23,8 @@ Cli parse_cli(int argc, char** argv) {
     parser.add_option(
         "-b,--blend", out.blend,
         std::format("Media blend duration. Default: {}", out.blend));
+    parser.add_flag("--void", out.void_frontend,
+                    "Use the void frontend, i.e. discard the output");
     try {
         parser.parse(argc, argv);
     } catch (const CLI::ParseError& e) { throw Exit(parser.exit(e)); }

@@ -10,6 +10,7 @@ struct Cli {
     std::string socket;
     std::string watermark;
     plai::Duration blend;
+    bool void_frontend = false;
 };
 
 class Exit : public std::exception {
@@ -25,4 +26,3 @@ class Exit : public std::exception {
 Cli parse_cli(int argc, char** argv);
 
 }  // namespace plaibin
-

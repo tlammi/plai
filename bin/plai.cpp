@@ -80,7 +80,9 @@ int run(const Cli& args) {
     auto api = ApiImpl(store.get(), &playlist);
     auto srv = plai::net::launch_api(&api, args.socket);
     auto srv_thread = std::jthread([&] { srv->run(); });
-    auto frontend = plai::frontend(plai::FrontendType::Sdl2);
+    auto ftype = args.void_frontend ? plai::FrontendType::Void
+                                    : plai::FrontendType::Sdl2;
+    auto frontend = plai::frontend(ftype);
     auto opts = plai::play::PlayerOpts{.wait_media = true};
     auto player = plai::play::Player(
         frontend.get(), &playlist, plai::play::PlayerOpts{.wait_media = true});
