@@ -128,11 +128,12 @@ class RequestImpl final : public Request {
     Method m_verb{};
     const Target* m_tgt{};
     ParsingCtx* m_ctx{};
+    QueryParams* m_params{};
 
  public:
-    explicit RequestImpl(Method verb, const Target& tgt,
-                         ParsingCtx& ctx) noexcept
-        : m_verb{verb}, m_tgt(&tgt), m_ctx(&ctx) {}
+    explicit RequestImpl(Method verb, const Target& tgt, ParsingCtx& ctx,
+                         QueryParams& params) noexcept
+        : m_verb{verb}, m_tgt(&tgt), m_ctx(&ctx), m_params(&params) {}
 
     Method method() const noexcept override { return m_verb; }
 
@@ -145,6 +146,8 @@ class RequestImpl final : public Request {
         return {reinterpret_cast<const char*>(m_ctx->buf.data()),
                 m_ctx->buf.size()};
     }
+
+    const QueryParams& query_params() const override { return *m_params; }
 
     std::optional<std::string_view> text_chunked() const override {
         m_ctx->buf.clear();
@@ -184,7 +187,8 @@ class Server::Impl {
             beast::basic_stream<local::stream_protocol>(std::move(sock)));
 
         ctx.read_header();
-        auto tgt_str = std::string(ctx.parser.get().target());
+        auto url_str = std::string(ctx.parser.get().target());
+        auto [tgt_str, param_str] = split_left(url_str, "?");
         auto verb = convert_boost_verb(ctx.parser.get().method());
         PLAI_DEBUG(
             "transfer encoding: {}",
@@ -199,7 +203,8 @@ class Server::Impl {
             auto tgt = parse_target(key.pattern, tgt_str);
             if (tgt) {
                 PLAI_DEBUG("handler: '{}'", key.pattern);
-                RequestImpl req{*verb, *tgt, ctx};
+                auto query_params = parse_query_params(param_str);
+                RequestImpl req{*verb, *tgt, ctx, query_params};
                 auto resp = handler(req);
                 ctx.respond(resp);
             }

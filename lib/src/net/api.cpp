@@ -187,8 +187,21 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                              return {.body = "Invalid playlist entry",
                                      .status_code = PLAI_HTTP(400)};
                          }
-                         // TODO: Support query parameters
-                         api->play(*list, true);
+                         bool replay = true;
+                         const auto& query_params = req.query_params();
+                         if (query_params.contains("replay")) {
+                             std::string_view replay_str =
+                                 query_params.at("replay");
+                             if (replay_str == "true") {
+                                 replay = true;
+                             } else if (replay_str == "false") {
+                                 replay = false;
+                             } else {
+                                 return {.body = "Invalid replay parameter",
+                                         .status_code = PLAI_HTTP(400)};
+                             }
+                         }
+                         api->play(*list, replay);
                          return {.body = "OK", .status_code = PLAI_HTTP(200)};
                      })
             .commit());

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <plai/net/http/method.hpp>
+#include <plai/net/http/query_params.hpp>
 #include <plai/net/http/target.hpp>
 
 namespace plai::net::http {
@@ -10,6 +11,11 @@ class Request {
  public:
     virtual Method method() const noexcept = 0;
     virtual const Target& target() const = 0;
+
+    /**
+     * \brief Request parameters
+     * */
+    virtual const QueryParams& query_params() const = 0;
 
     // TODO: make not const
     virtual std::string_view text() const = 0;
