@@ -16,8 +16,6 @@ class Texture {
     virtual void update(const media::Frame& frame) = 0;
 
     virtual void render_to(const RenderTarget& tgt) = 0;
-
- private:
 };
 
 }  // namespace plai
