@@ -19,7 +19,7 @@ class DecodingPipeline {
  public:
     using Media = plai::media::Media;
 
-    static constexpr size_t BUFFER_SIZE = 1024;
+    static constexpr size_t BUFFER_SIZE = 8;
     DecodingPipeline() = default;
 
     DecodingPipeline(const DecodingPipeline&) = delete;
