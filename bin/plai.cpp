@@ -33,7 +33,6 @@ class Playlist final : public plai::play::MediaSrc {
     Playlist(plai::Store* store) : m_store(store) { assert(store); }
 
     bool set_entries(std::vector<plai::net::MediaListEntry> entries) {
-        auto keys = std::vector<std::string>();
         auto lk = std::lock_guard(m_mut);
         m_keys = std::move(entries);
         // TODO: Check that entries actually exist and lock them
