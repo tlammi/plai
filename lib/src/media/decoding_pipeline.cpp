@@ -94,8 +94,10 @@ void DecodingPipeline::work(std::stop_token tok) {
                     m_conv(m_dims, frm, std::move(converted_frame));
                 converted_frame = m_buf.push(std::move(converted_frame));
                 std::swap(frm, converted_frame);
+                frm = Frame();
             } else {
-                frm = m_buf.push(std::move(frm));
+                m_buf.push(std::move(frm));
+                frm = Frame();
             }
             ++decoded_frames;
             if (is_img) break;
