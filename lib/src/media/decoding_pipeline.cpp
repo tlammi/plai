@@ -75,7 +75,6 @@ void DecodingPipeline::work(std::stop_token tok) {
         m_medias.pop_front();
         lk.unlock();
         bool is_img = std::holds_alternative<Image>(media);
-        std::println("is_img: {}", is_img);
         auto demux = demux_from_media(media);
         auto [stream_idx, stream] = demux.best_video_stream();
         lk.lock();
