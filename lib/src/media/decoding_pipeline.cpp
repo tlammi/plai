@@ -24,7 +24,6 @@ DecodingStream DecodingPipeline::frame_stream() {
 }
 
 void DecodingPipeline::decode_video(std::vector<uint8_t> data) {
-    std::println("pushing video");
     {
         std::unique_lock lk{m_mut};
         m_medias.push_back(Video(std::move(data)));
@@ -32,7 +31,6 @@ void DecodingPipeline::decode_video(std::vector<uint8_t> data) {
     m_cv.notify_one();
 }
 void DecodingPipeline::decode_image(std::vector<uint8_t> data) {
-    std::println("pushing image");
     {
         std::unique_lock lk{m_mut};
         m_medias.push_back(Image(std::move(data)));
@@ -40,7 +38,6 @@ void DecodingPipeline::decode_image(std::vector<uint8_t> data) {
     m_cv.notify_one();
 }
 void DecodingPipeline::decode(Media m) {
-    std::println("pushing media");
     {
         std::unique_lock lk{m_mut};
         m_medias.push_back(std::move(m));
