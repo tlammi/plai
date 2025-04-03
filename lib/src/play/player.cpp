@@ -71,6 +71,7 @@ class Player::Impl {
                     m_front_text->render_to({});
                     ++frame_count;
                 } else {
+                    PLAI_DEBUG("showed media with {} frames", frame_count);
                     if (frame_count == 1) {
                         if (!do_image_delay()) return;
                         frame_count = 0;
