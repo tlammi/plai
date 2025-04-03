@@ -9,7 +9,7 @@ plai::media::Media mk_media(plai::net::MediaType t, auto data) {
     using enum plai::net::MediaType;
     switch (t) {
         case Video: return plai::media::Video(std::move(data));
-        case Image: return plai::media::Video(std::move(data));
+        case Image: return plai::media::Image(std::move(data));
     }
     std::unreachable();
 }
