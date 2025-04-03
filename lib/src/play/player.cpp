@@ -114,6 +114,7 @@ class Player::Impl {
         auto defer = Defer([&] {
             m_front_text->blend_mode(BlendMode::None);
             m_back_text->blend_mode(BlendMode::None);
+            PLAI_TRACE("blended");
         });
         m_front_text->blend_mode(BlendMode::Blend);
         m_back_text->blend_mode(BlendMode::Blend);
@@ -127,7 +128,6 @@ class Player::Impl {
                 std::numeric_limits<uint8_t>::max();
             m_front->render_clear();
             auto alpha = alpha_calc();
-            std::println("alpha: {}", alpha);
             m_back_text->alpha(max_alpha - alpha);
             m_back_text->update(m_prev_frame);
             m_back_text->render_to({});
@@ -141,6 +141,7 @@ class Player::Impl {
     }
 
     bool do_image_delay() {
+        PLAI_TRACE("showing image");
         auto start = Clock::now();
         auto end = start + m_opts.image_dur;
 
@@ -151,6 +152,7 @@ class Player::Impl {
                 if (std::holds_alternative<Quit>(*event)) return false;
             }
         }
+        PLAI_TRACE("image showed");
         return true;
     }
 
