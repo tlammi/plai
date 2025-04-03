@@ -74,8 +74,8 @@ class Player::Impl {
                     PLAI_DEBUG("showed media with {} frames", frame_count);
                     if (frame_count == 1) {
                         if (!do_image_delay()) return;
-                        frame_count = 0;
                     }
+                    frame_count = 0;
                     --m_queued_medias;
                     m_stream.reset();
                     continue;
