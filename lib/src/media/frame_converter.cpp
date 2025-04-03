@@ -4,6 +4,7 @@
 #include <plai/media/frame_converter.hpp>
 
 extern "C" {
+#include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
 
@@ -72,7 +73,11 @@ Frame FrameConverter::operator()(Vec<int> dst_dims, const Frame& src,
     raw->format = out_pix_fmt;
     raw->width = dst_dims.x;
     raw->height = dst_dims.y;
-    av_frame_get_buffer(raw, 0);
+    if (!dst.is_dynamic()) {
+        av_image_alloc(raw->data, raw->linesize, dst_dims.x, dst_dims.y,
+                       out_pix_fmt, 1);
+        dst.is_dynamic(true);
+    }
     sws_scale(m_ctx, (const uint8_t* const*)(src.raw()->data),
               src.raw()->linesize, 0, src.height(), raw->data, raw->linesize);
     return dst;
