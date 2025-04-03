@@ -80,22 +80,16 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto decoder = Decoder(stream);
         auto pkt = Packet();
         auto frm = Frame();
-        auto converted_frame = Frame();
         size_t decoded_frames = 0;
         while (!tok.stop_requested() && demux >> pkt) {
             if (pkt.stream_index() != stream_idx) continue;
             decoder << pkt;
             if (!(decoder >> frm)) continue;
-            if (m_dims) {
-                converted_frame =
-                    m_conv(m_dims, frm, std::move(converted_frame));
-                converted_frame = m_buf.push(std::move(converted_frame));
-                std::swap(frm, converted_frame);
-                frm = Frame();
-            } else {
-                m_buf.push(std::move(frm));
-                frm = Frame();
-            }
+            if (m_dims)
+                m_buf.push(m_conv(m_dims, std::exchange(frm, {})));
+            else
+                m_buf.push(std::exchange(frm, {}));
+
             ++decoded_frames;
             if (is_img) break;
         }

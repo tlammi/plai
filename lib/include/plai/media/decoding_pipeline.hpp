@@ -64,7 +64,7 @@ class DecodingPipeline {
     void work(std::stop_token tok);
 
     mutable std::mutex m_mut{};
-    PersistBuffer<Frame> m_buf{BUFFER_SIZE};
+    RingBuffer<Frame> m_buf{BUFFER_SIZE};
     std::condition_variable m_cv{};
     std::deque<Media> m_medias{};
     Queue<Frac<int>> m_framerates{};

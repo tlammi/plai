@@ -30,7 +30,7 @@ class DecodingStream {
         }
 
         Iter& operator++() {
-            m_curr = m_buf->pop(std::move(*m_curr));
+            m_curr = m_buf->pop();
             if (!m_curr->width()) m_curr.reset();
             return *this;
         }
@@ -42,9 +42,9 @@ class DecodingStream {
         Frame* operator->() const noexcept { return &*m_curr; }
 
      private:
-        explicit Iter(PersistBuffer<Frame>* buf)
-            : m_buf(buf), m_curr(m_buf->pop(Frame())) {}
-        PersistBuffer<Frame>* m_buf{};
+        explicit Iter(RingBuffer<Frame>* buf)
+            : m_buf(buf), m_curr(m_buf->pop()) {}
+        RingBuffer<Frame>* m_buf{};
         mutable std::optional<Frame> m_curr{};
     };
 
@@ -56,10 +56,10 @@ class DecodingStream {
     constexpr Sentinel end() const noexcept { return {}; }
 
  private:
-    DecodingStream(PersistBuffer<Frame>* buf, Frac<int> fps)
+    DecodingStream(RingBuffer<Frame>* buf, Frac<int> fps)
         : m_buf(buf), m_fps(fps) {}
 
-    PersistBuffer<Frame>* m_buf{};
+    RingBuffer<Frame>* m_buf{};
     Frac<int> m_fps{0, 0};
 };
 }  // namespace plai::media

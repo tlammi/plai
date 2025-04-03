@@ -77,6 +77,9 @@ class RingBuffer {
         return m_ctx.capacity;
     }
 
+    void push(const T& t) { emplace(t); }
+    void push(T&& t) { emplace(std::move(t)); }
+
     template <class... Ts>
     void emplace(Ts&&... ts) {
         auto defer = Defer([&] { m_data.notify_one(); });
