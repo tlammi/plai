@@ -125,6 +125,7 @@ class DefaultApi : public ApiV1 {
 class ApiServer : public Virtual {
  public:
     virtual void run() = 0;
+    virtual void stop() = 0;
 };
 
 std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind);

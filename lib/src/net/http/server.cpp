@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <plai/logs/logs.hpp>
 #include <plai/net/http/server.hpp>
+#include <plai/util/defer.hpp>
+#include <print>
 
 namespace plai::net::http {
 namespace local = boost::asio::local;
@@ -171,18 +173,43 @@ class Server::Impl {
     }
 
     void run() {
+        m_ioc.restart();
         if (fs::exists(m_sock)) { fs::remove(m_sock); }
-        auto ioc = boost::asio::io_context();
-        auto acceptor = local::stream_protocol::acceptor(
-            ioc, local::stream_protocol::endpoint(m_sock));
-        while (true) { step(ioc, acceptor); }
+        m_acceptor = local::stream_protocol::acceptor(
+            m_ioc, local::stream_protocol::endpoint(m_sock));
+        m_acceptor.async_accept(m_ioc,
+                                [&](const boost::system::error_code& ec,
+                                    local::stream_protocol::socket sock) {
+                                    step(ec, std::move(sock));
+                                });
+        m_ioc.run();
+    }
+
+    void stop() {
+        std::println("stopping server");
+        m_ioc.stop();
+        std::println("cancelled");
     }
 
  private:
-    void step(boost::asio::io_context& ioc,
-              local::stream_protocol::acceptor& acceptor) {
-        auto sock = local::stream_protocol::socket(ioc);
-        acceptor.accept(sock);
+    void step(boost::system::error_code ec,
+              local::stream_protocol::socket sock) {
+        if (ec == boost::asio::error::operation_aborted) {
+            PLAI_DEBUG("Acceptor cancelled. Terminating");
+            m_ioc.stop();
+            return;
+        }
+        if (ec == boost::asio::error::interrupted) {
+            PLAI_DEBUG("Acceptor interrupted. Terminating");
+            m_ioc.stop();
+            return;
+        }
+        if (ec) throw boost::system::system_error(ec);
+        auto defer = Defer{[&] {
+            m_acceptor.async_accept(m_ioc, [&](const auto& ec, auto sock) {
+                step(ec, std::move(sock));
+            });
+        }};
         auto ctx = ParsingCtx(
             beast::basic_stream<local::stream_protocol>(std::move(sock)));
 
@@ -213,6 +240,8 @@ class Server::Impl {
     }
 
     fs::path m_sock;
+    boost::asio::io_context m_ioc{};
+    local::stream_protocol::acceptor m_acceptor{m_ioc};
     ServiceMap m_services;
 };
 
@@ -223,6 +252,7 @@ Server& Server::operator=(Server&&) noexcept = default;
 Server::~Server() {}
 
 void Server::run() { m_impl->run(); }
+void Server::stop() { m_impl->stop(); }
 
 class ServerBuilder::Impl {
  public:

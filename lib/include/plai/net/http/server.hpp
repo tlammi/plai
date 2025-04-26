@@ -46,7 +46,12 @@ class Server {
 
     ~Server();
 
+    /**
+     * \brief Run synchronously
+     * */
     void run();
+
+    void stop();
 
  private:
     class Impl;

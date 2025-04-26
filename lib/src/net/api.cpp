@@ -46,6 +46,7 @@ class ServerImpl final : public ApiServer {
         : m_srv(std::move(srv)) {}
 
     void run() override { m_srv.run(); }
+    void stop() override { m_srv.stop(); }
 
  private:
     http::Server m_srv;
