@@ -92,8 +92,16 @@ int run(const Cli& args) {
                                     : plai::FrontendType::Sdl2;
     auto frontend = plai::frontend(ftype);
     auto opts = plai::play::PlayerOpts{.wait_media = true};
-    auto player = plai::play::Player(
-        frontend.get(), &playlist, plai::play::PlayerOpts{.wait_media = true});
+    if (!args.watermark.empty()) {
+        PLAI_INFO("using watermark from {}", args.watermark);
+        auto frm = plai::media::decode_image(args.watermark);
+        auto tgt = plai::RenderTarget{.w = 0.5,
+                                      .vertical = plai::Position::End,
+                                      .horizontal = plai::Position::Middle};
+        opts.watermarks.push_back({.image = std::move(frm), .target = tgt});
+    }
+    auto player =
+        plai::play::Player(frontend.get(), &playlist, std::move(opts));
     auto api = ApiImpl(store.get(), &playlist, &player);
     auto srv = plai::net::launch_api(&api, args.socket);
     auto srv_thread = std::jthread([&] { srv->run(); });

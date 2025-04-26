@@ -10,4 +10,5 @@ namespace plai::media {
  * \brief Decode the first frame from the given media
  * */
 Frame decode_image(std::span<const uint8_t> data);
+Frame decode_image(const std::filesystem::path& path);
 }  // namespace plai::media

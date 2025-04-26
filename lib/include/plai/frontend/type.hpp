@@ -49,8 +49,8 @@ enum class TextureAccess {
 };
 
 enum class Scaling {
-    Fit,
-    Stretch,
+    Fit,      // Scale image without distortion
+    Stretch,  // Force fit the target rectangle
 };
 
 struct RenderTarget {

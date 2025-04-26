@@ -100,9 +100,11 @@ class Player::Impl {
 
  private:
     void render_watermarks() {
+        PLAI_TRACE("Rendering total {} watermarks", m_opts.watermarks.size());
         for (auto elems :
              std::ranges::zip_view(m_watermark_textures, m_opts.watermarks)) {
             auto& [text, watermark] = elems;
+            text->blend_mode(BlendMode::Blend);
             text->render_to(watermark.target);
         }
     }
@@ -144,6 +146,7 @@ class Player::Impl {
             m_front_text->alpha(alpha);
             m_front_text->update(*m_stream_iter);
             m_front_text->render_to({});
+            render_watermarks();
             m_front->render_current();
             if (alpha == max_alpha) break;
         }

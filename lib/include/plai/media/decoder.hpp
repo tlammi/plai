@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <plai/media/forward.hpp>
 #include <plai/media/frame.hpp>
 #include <plai/media/packet.hpp>
