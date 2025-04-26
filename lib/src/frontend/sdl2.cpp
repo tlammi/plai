@@ -262,6 +262,11 @@ class SdlFrontend final : public Frontend {
         return std::nullopt;
     }
 
+    void stop() override {
+        auto evt = SDL_Event{.type = SDL_QUIT};
+        SDL_PushEvent(&evt);
+    }
+
     Vec<int> dimensions() override {
         Vec<int> out{};
         SDL_GetWindowSize(m_win.get(), &out.x, &out.y);
