@@ -81,6 +81,13 @@ class Player {
 
     void stop();
 
+    /**
+     * \brief Signal that the internal media queue should be cleared.
+     *
+     * This is called when the playlist is changed to make the switch faster.
+     * */
+    void clear_media_queue();
+
  private:
     class Impl;
     std::unique_ptr<Impl> m_impl;

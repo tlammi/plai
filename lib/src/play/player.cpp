@@ -42,6 +42,10 @@ class Player::Impl {
                 if (!event) break;
                 if (std::holds_alternative<Quit>(*event)) return;
             }
+            if (m_clear_media_queue.exchange(false)) {
+                m_decoder.clear_media_queue();
+                m_queued_medias = 0;
+            }
             if (!m_queued_medias && m_exiting) return;
             if (m_queued_medias < MAX_QUEUED_MEDIAS) {
                 auto next = m_src->next_media();
@@ -91,6 +95,8 @@ class Player::Impl {
     }
 
     void stop() { m_front->stop(); }
+
+    void clear_media_queue() { m_clear_media_queue = true; }
 
  private:
     void render_watermarks() {
@@ -172,6 +178,7 @@ class Player::Impl {
     std::unique_ptr<Texture> m_back_text{m_front->texture()};
     size_t m_queued_medias{0};
     bool m_exiting{false};
+    std::atomic_bool m_clear_media_queue{false};
 };
 
 Player::Player(Frontend* front, MediaSrc* media_src, PlayerOpts opts)
@@ -180,5 +187,6 @@ Player::~Player() {}
 
 void Player::run() { m_impl->run(); }
 void Player::stop() { m_impl->stop(); }
+void Player::clear_media_queue() { m_impl->clear_media_queue(); }
 
 }  // namespace plai::play

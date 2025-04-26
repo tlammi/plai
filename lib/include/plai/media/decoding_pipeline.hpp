@@ -36,6 +36,14 @@ class DecodingPipeline {
     void decode(stdfs::path path);
 
     /**
+     * \brief Clear the enqueued medias
+     *
+     * This is typically used in conjunction with playlist change to make the
+     * switch faster.
+     * */
+    void clear_media_queue();
+
+    /**
      * \brief Set target dimensions
      *
      * Set target frame dimensions. This can be used for lowering

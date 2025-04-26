@@ -41,6 +41,10 @@ size_t DecodingPipeline::queued_medias() const noexcept {
     auto lk = std::unique_lock(m_mut);
     return m_medias.size();
 }
+void DecodingPipeline::clear_media_queue() {
+    auto lk = std::unique_lock(m_mut);
+    m_medias.clear();
+}
 
 void DecodingPipeline::work(std::stop_token tok) {
     while (true) {
