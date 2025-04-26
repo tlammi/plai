@@ -255,6 +255,16 @@ class SdlFrontend final : public Frontend {
         if (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_QUIT: return Quit{};
+                case SDL_KEYDOWN:
+                    switch (event.key.keysym.sym) {
+                        case SDLK_SPACE: {
+                            auto mode = m_full_screen
+                                            ? 0
+                                            : SDL_WINDOW_FULLSCREEN_DESKTOP;
+                            m_full_screen = !m_full_screen;
+                            SDL_SetWindowFullscreen(m_win.get(), mode);
+                        }
+                    }
                 default: {
                 }
             }
@@ -292,6 +302,7 @@ class SdlFrontend final : public Frontend {
     UniqPtr<SDL_Window> m_win{sdl::make_window("plai")};
     UniqPtr<SDL_Renderer> m_rend{sdl::make_renderer(m_win.get())};
     SDL_Texture* m_text{};
+    bool m_full_screen{false};
 };
 
 std::unique_ptr<Frontend> sdl_frontend() {
