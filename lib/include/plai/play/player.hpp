@@ -19,6 +19,7 @@ struct Watermark {
 };
 
 static constexpr auto IMAGE_DEFAULT_DURATION = std::chrono::seconds(5);
+static constexpr auto BLEND_DEFAULT_DURATION = std::chrono::seconds(5);
 
 struct PlayerOpts {
     /// Watermarks. Rendered in order
@@ -35,7 +36,7 @@ struct PlayerOpts {
      * Time to perform linear blend between frames of concecutive medias.
      * */
     // Duration blend_dur{Duration::zero()};
-    Duration blend_dur{std::chrono::seconds(5)};
+    Duration blend_dur{BLEND_DEFAULT_DURATION};
 
     /**
      * \brief Whether to wait if there is no more media available.

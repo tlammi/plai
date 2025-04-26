@@ -257,16 +257,10 @@ class SdlFrontend final : public Frontend {
                 case SDL_QUIT: return Quit{};
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
-                        case SDLK_SPACE: {
-                            auto mode = m_full_screen
-                                            ? 0
-                                            : SDL_WINDOW_FULLSCREEN_DESKTOP;
-                            m_full_screen = !m_full_screen;
-                            SDL_SetWindowFullscreen(m_win.get(), mode);
-                        }
+                        case SDLK_SPACE: toggle_fullscreen();
+                        default: break;
                     }
-                default: {
-                }
+                default: break;
             }
         }
         return std::nullopt;
@@ -298,6 +292,15 @@ class SdlFrontend final : public Frontend {
     void render_current() final { SDL_RenderPresent(m_rend.get()); }
 
  private:
+    void set_fullscreen_impl(bool v) override {
+        SDL_SetWindowFullscreen(
+            m_win.get(), m_full_screen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+
+    void toggle_fullscreen() {
+        set_fullscreen_impl(std::exchange(m_full_screen, !m_full_screen));
+    }
+
     std::shared_ptr<detail::Sdl2Init> m_sdl{detail::Sdl2Init::instance()};
     UniqPtr<SDL_Window> m_win{sdl::make_window("plai")};
     UniqPtr<SDL_Renderer> m_rend{sdl::make_renderer(m_win.get())};

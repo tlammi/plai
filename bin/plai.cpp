@@ -91,6 +91,7 @@ int run(const Cli& args) {
     auto ftype = args.void_frontend ? plai::FrontendType::Void
                                     : plai::FrontendType::Sdl2;
     auto frontend = plai::frontend(ftype);
+    frontend->set_fullscreen(args.fullscreen);
     auto opts = plai::play::PlayerOpts{
         .image_dur = args.img_dur,
         .blend_dur = args.blend,

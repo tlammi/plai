@@ -45,6 +45,13 @@ class Frontend {
     virtual std::unique_ptr<Texture> texture() = 0;
 
     virtual void render_current() = 0;
+
+    void set_fullscreen(bool fullscreen = true) {
+        set_fullscreen_impl(fullscreen);
+    }
+
+ private:
+    virtual void set_fullscreen_impl(bool v) { (void)v; };
 };
 
 std::unique_ptr<Frontend> frontend(FrontendType type);
