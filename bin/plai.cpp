@@ -95,10 +95,8 @@ int run(const Cli& args) {
     if (!args.watermark.empty()) {
         PLAI_INFO("using watermark from {}", args.watermark);
         auto frm = plai::media::decode_image(args.watermark);
-        auto tgt = plai::RenderTarget{.w = 0.5,
-                                      .vertical = plai::Position::End,
-                                      .horizontal = plai::Position::Middle};
-        opts.watermarks.push_back({.image = std::move(frm), .target = tgt});
+        opts.watermarks.push_back(
+            {.image = std::move(frm), .target = args.watermark_tgt});
     }
     auto player =
         plai::play::Player(frontend.get(), &playlist, std::move(opts));

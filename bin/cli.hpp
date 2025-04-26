@@ -1,5 +1,6 @@
 #pragma once
 
+#include <plai/frontend/type.hpp>
 #include <plai/logs/logs.hpp>
 #include <plai/time.hpp>
 #include <string>
@@ -10,6 +11,7 @@ struct Cli {
     std::string db;
     std::string socket;
     std::string watermark;
+    plai::RenderTarget watermark_tgt{};
     plai::Duration blend;
     bool void_frontend = false;
     plai::logs::Level log_level{plai::logs::Level::Info};

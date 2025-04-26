@@ -3,6 +3,53 @@
 #include <CLI/CLI.hpp>
 
 namespace plaibin {
+namespace {
+enum class WatermarkPos {
+    Tl,
+    Tm,
+    Tr,
+    Ml,
+    Mm,
+    Mr,
+    Bl,
+    Bm,
+    Br,
+};
+
+constexpr plai::Position pos_horizontal(WatermarkPos in) {
+    using enum WatermarkPos;
+    using enum plai::Position;
+    switch (in) {
+        case WatermarkPos::Tl:
+        case WatermarkPos::Ml:
+        case WatermarkPos::Bl: return Begin;
+        case WatermarkPos::Tm:
+        case WatermarkPos::Mm:
+        case WatermarkPos::Bm: return Middle;
+        case WatermarkPos::Tr:
+        case WatermarkPos::Mr:
+        case WatermarkPos::Br: return End;
+    }
+    std::unreachable();
+}
+
+constexpr plai::Position pos_vertical(WatermarkPos in) {
+    using enum WatermarkPos;
+    using enum plai::Position;
+    switch (in) {
+        case WatermarkPos::Tl:
+        case WatermarkPos::Tm:
+        case WatermarkPos::Tr: return Begin;
+        case WatermarkPos::Ml:
+        case WatermarkPos::Mm:
+        case WatermarkPos::Mr: return Middle;
+        case WatermarkPos::Bl:
+        case WatermarkPos::Bm:
+        case WatermarkPos::Br: return End;
+    }
+    std::unreachable();
+}
+}  // namespace
 
 Cli parse_cli(int argc, char** argv) {
     auto parser = CLI::App("simple media player");
@@ -11,12 +58,19 @@ Cli parse_cli(int argc, char** argv) {
             .socket = "/tmp/plai.sock",
             .watermark = "",
             .blend = std::chrono::seconds(2)};
+    WatermarkPos wm_pos{WatermarkPos::Bl};
     using enum plai::logs::Level;
-    std::map<std::string, plai::logs::Level> log_mapping{{"trace", Trace},
-                                                         {"debug", Debug},
-                                                         {"info", Info},
-                                                         {"warn", Warn},
-                                                         {"error", Err}};
+    const std::map<std::string, plai::logs::Level> log_mapping{{"trace", Trace},
+                                                               {"debug", Debug},
+                                                               {"info", Info},
+                                                               {"warn", Warn},
+                                                               {"error", Err}};
+    using enum WatermarkPos;
+    const std::map<std::string, WatermarkPos> wm_pos_mapping{
+        {"tl", Tl}, {"tm", Tm}, {"tr", Tr}, {"ml", Ml}, {"mm", Mm},
+        {"mr", Mr}, {"bl", Bl}, {"bm", Bm}, {"br", Br},
+    };
+
     parser.add_option("-l,--loglevel", out.log_level, "Log level")
         ->transform(CLI::CheckedTransformer(log_mapping, CLI::ignore_case));
     parser.add_option("-d,--db", out.db,
@@ -28,6 +82,13 @@ Cli parse_cli(int argc, char** argv) {
     parser.add_option(
         "-w,--watermark", out.watermark,
         "Place a watermark to the player. Empty string to disable.");
+    parser.add_option("--watermark-w", out.watermark_tgt.w,
+                      "Watermark width scaling");
+    parser.add_option("--watermark-h", out.watermark_tgt.h,
+                      "Watermark height scaling");
+    parser.add_option("--watermark-pos", wm_pos, "Watermark position")
+        ->transform(CLI::CheckedTransformer(wm_pos_mapping, CLI::ignore_case));
+
     parser.add_option(
         "-b,--blend", out.blend,
         std::format("Media blend duration. Default: {}", out.blend));
@@ -36,6 +97,8 @@ Cli parse_cli(int argc, char** argv) {
     try {
         parser.parse(argc, argv);
     } catch (const CLI::ParseError& e) { throw Exit(parser.exit(e)); }
+    out.watermark_tgt.vertical = pos_vertical(wm_pos);
+    out.watermark_tgt.horizontal = pos_horizontal(wm_pos);
     return out;
 }
 }  // namespace plaibin
