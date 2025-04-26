@@ -77,7 +77,9 @@ class Player::Impl {
                     ++frame_count;
                 } else {
                     PLAI_DEBUG("showed media with {} frames", frame_count);
-                    if (frame_count == 1) {
+                    // HACK: The number of frames for images is 2, should be
+                    // checked...
+                    if (frame_count < 5) {
                         if (!do_image_delay()) return;
                     }
                     frame_count = 0;
@@ -100,7 +102,6 @@ class Player::Impl {
 
  private:
     void render_watermarks() {
-        PLAI_TRACE("Rendering total {} watermarks", m_opts.watermarks.size());
         for (auto elems :
              std::ranges::zip_view(m_watermark_textures, m_opts.watermarks)) {
             auto& [text, watermark] = elems;
@@ -155,6 +156,7 @@ class Player::Impl {
 
     bool do_image_delay() {
         PLAI_TRACE("showing image");
+        auto rl = rate_limiter();
         auto start = Clock::now();
         auto end = start + m_opts.image_dur;
 
@@ -164,6 +166,10 @@ class Player::Impl {
                 if (!event) break;
                 if (std::holds_alternative<Quit>(*event)) return false;
             }
+            m_front->render_clear();
+            m_front_text->render_to({});
+            m_front->render_current();
+            rl();
         }
         PLAI_TRACE("image showed");
         return true;
