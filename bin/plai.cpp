@@ -91,7 +91,12 @@ int run(const Cli& args) {
     auto ftype = args.void_frontend ? plai::FrontendType::Void
                                     : plai::FrontendType::Sdl2;
     auto frontend = plai::frontend(ftype);
-    auto opts = plai::play::PlayerOpts{.wait_media = true};
+    auto opts = plai::play::PlayerOpts{
+        .image_dur = args.img_dur,
+        .blend_dur = args.blend,
+        .wait_media = true,
+    };
+
     if (!args.watermark.empty()) {
         PLAI_INFO("using watermark from {}", args.watermark);
         auto frm = plai::media::decode_image(args.watermark);

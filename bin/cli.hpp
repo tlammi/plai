@@ -13,6 +13,7 @@ struct Cli {
     std::string watermark;
     plai::RenderTarget watermark_tgt{};
     plai::Duration blend;
+    plai::Duration img_dur{};
     bool void_frontend = false;
     plai::logs::Level log_level{plai::logs::Level::Info};
 };

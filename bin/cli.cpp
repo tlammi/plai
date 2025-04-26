@@ -49,15 +49,26 @@ constexpr plai::Position pos_vertical(WatermarkPos in) {
     }
     std::unreachable();
 }
+
+constexpr plai::Duration to_duration(double secs) noexcept {
+    namespace sc = std::chrono;
+    return sc::duration_cast<plai::Duration>(sc::duration<double>(secs));
+}
+
 }  // namespace
 
 Cli parse_cli(int argc, char** argv) {
     auto parser = CLI::App("simple media player");
     argv = parser.ensure_utf8(argv);
-    Cli out{.db = ":memory:",
-            .socket = "/tmp/plai.sock",
-            .watermark = "",
-            .blend = std::chrono::seconds(2)};
+    Cli out{
+        .db = ":memory:",
+        .socket = "/tmp/plai.sock",
+        .watermark = "",
+        .blend = std::chrono::seconds(2),
+        .img_dur = std::chrono::seconds(1),
+    };
+    double img_dur = 1.0;
+    double blend = 1.0;
     WatermarkPos wm_pos{WatermarkPos::Bl};
     using enum plai::logs::Level;
     const std::map<std::string, plai::logs::Level> log_mapping{{"trace", Trace},
@@ -90,8 +101,12 @@ Cli parse_cli(int argc, char** argv) {
         ->transform(CLI::CheckedTransformer(wm_pos_mapping, CLI::ignore_case));
 
     parser.add_option(
-        "-b,--blend", out.blend,
-        std::format("Media blend duration. Default: {}", out.blend));
+        "-b,--blend", blend,
+        std::format("Media blend duration in seconds. Default: {}", blend));
+    parser.add_option(
+        "--img-dur", img_dur,
+        std::format("Duration to show images in seconds. Default: {}",
+                    img_dur));
     parser.add_flag("--void", out.void_frontend,
                     "Use the void frontend, i.e. discard the output");
     try {
@@ -99,6 +114,8 @@ Cli parse_cli(int argc, char** argv) {
     } catch (const CLI::ParseError& e) { throw Exit(parser.exit(e)); }
     out.watermark_tgt.vertical = pos_vertical(wm_pos);
     out.watermark_tgt.horizontal = pos_horizontal(wm_pos);
+    out.blend = to_duration(blend);
+    out.img_dur = to_duration(img_dur);
     return out;
 }
 }  // namespace plaibin
