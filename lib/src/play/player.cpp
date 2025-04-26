@@ -1,7 +1,6 @@
 #include <plai/logs/logs.hpp>
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/play/player.hpp>
-#include <print>
 #include <variant>
 
 #include "alpha_calc.hpp"
@@ -88,6 +87,8 @@ class Player::Impl {
             std::this_thread::sleep_for(1ms);
         }
     }
+
+    void stop() { m_front->stop(); }
 
  private:
     void render_watermarks() {
@@ -176,5 +177,6 @@ Player::Player(Frontend* front, MediaSrc* media_src, PlayerOpts opts)
 Player::~Player() {}
 
 void Player::run() { m_impl->run(); }
+void Player::stop() { m_impl->stop(); }
 
 }  // namespace plai::play

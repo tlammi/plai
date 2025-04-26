@@ -79,6 +79,8 @@ class Player {
      * */
     void run();
 
+    void stop();
+
  private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
