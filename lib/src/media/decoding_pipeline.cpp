@@ -16,6 +16,15 @@ auto demux_from_media(DecodingPipeline::Media& m) {
 DecodingPipeline::~DecodingPipeline() {
     m_worker.request_stop();
     m_cv.notify_one();
+    // if the buffer is full the producer thread gets stuck writing to the ring
+    // buffer
+    // Two reads is probably enough since the producer writes an additional null
+    // frame to the buffer to indicate end of media, but what the hell.
+    m_buf.try_pop();
+    m_buf.try_pop();
+    m_buf.try_pop();
+    m_buf.try_pop();
+    m_buf.try_pop();
     m_worker.join();
 }
 
