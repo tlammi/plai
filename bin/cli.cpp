@@ -11,6 +11,14 @@ Cli parse_cli(int argc, char** argv) {
             .socket = "/tmp/plai.sock",
             .watermark = "",
             .blend = std::chrono::seconds(2)};
+    using enum plai::logs::Level;
+    std::map<std::string, plai::logs::Level> log_mapping{{"trace", Trace},
+                                                         {"debug", Debug},
+                                                         {"info", Info},
+                                                         {"warn", Warn},
+                                                         {"error", Err}};
+    parser.add_option("-l,--loglevel", out.log_level, "Log level")
+        ->transform(CLI::CheckedTransformer(log_mapping, CLI::ignore_case));
     parser.add_option("-d,--db", out.db,
                       "Database path. Use ':memory:' for in-memory database. "
                       "Default: ':memory:'.");

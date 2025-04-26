@@ -1,3 +1,4 @@
+#include <csignal>
 #include <plai.hpp>
 #include <print>
 
@@ -74,6 +75,15 @@ class ApiImpl : public plai::net::DefaultApi {
 };
 
 int run(const Cli& args) {
+    std::atomic<plai::play::Player*> ptr_player{};
+    static constexpr std::array<plai::os::Signal, 1> mask{SIGINT};
+    plai::os::SignalListener listener(mask, [&] {
+        if (!ptr_player) return false;
+        ptr_player.load()->stop();
+        return true;
+    });
+    plai::logs::init(args.log_level);
+
     auto store = plai::sqlite_store(args.db);
     auto playlist = Playlist(store.get());
     auto api = ApiImpl(store.get(), &playlist);
@@ -85,7 +95,9 @@ int run(const Cli& args) {
     auto opts = plai::play::PlayerOpts{.wait_media = true};
     auto player = plai::play::Player(
         frontend.get(), &playlist, plai::play::PlayerOpts{.wait_media = true});
+    ptr_player = &player;
     player.run();
+    srv->stop();
     return 0;
 }
 

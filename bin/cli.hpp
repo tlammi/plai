@@ -1,5 +1,6 @@
 #pragma once
 
+#include <plai/logs/logs.hpp>
 #include <plai/time.hpp>
 #include <string>
 
@@ -11,6 +12,7 @@ struct Cli {
     std::string watermark;
     plai::Duration blend;
     bool void_frontend = false;
+    plai::logs::Level log_level{plai::logs::Level::Info};
 };
 
 class Exit : public std::exception {
