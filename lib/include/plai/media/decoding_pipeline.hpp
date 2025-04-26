@@ -32,15 +32,7 @@ class DecodingPipeline {
 
     DecodingStream frame_stream();
 
-    void decode_video(std::vector<uint8_t> data);
-    void decode_image(std::vector<uint8_t> data);
-    /**
-     * \brief Decode any media.
-     *
-     * Be careful when passing View types. Those are accessed from different
-     * thread and should be valid until they are processed.
-     * */
-    void decode(Media m);
+    void decode(std::vector<uint8_t> data);
     void decode(stdfs::path path);
 
     /**
@@ -66,7 +58,7 @@ class DecodingPipeline {
     mutable std::mutex m_mut{};
     RingBuffer<Frame> m_buf{BUFFER_SIZE};
     std::condition_variable m_cv{};
-    std::deque<Media> m_medias{};
+    std::deque<std::vector<uint8_t>> m_medias{};
     Queue<Frac<int>> m_framerates{};
     Vec<int> m_dims{};
     FrameConverter m_conv{};

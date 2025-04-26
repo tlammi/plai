@@ -185,11 +185,7 @@ class Server::Impl {
         m_ioc.run();
     }
 
-    void stop() {
-        std::println("stopping server");
-        m_ioc.stop();
-        std::println("cancelled");
-    }
+    void stop() { m_ioc.stop(); }
 
  private:
     void step(boost::system::error_code ec,

@@ -7,12 +7,7 @@
 #include <print>
 
 namespace plai::media {
-namespace {
-auto demux_from_media(DecodingPipeline::Media& m) {
-    return match(m, [](auto& arg) { return Demux(arg.data); });
-}
 
-}  // namespace
 DecodingPipeline::~DecodingPipeline() {
     m_worker.request_stop();
     m_cv.notify_one();
@@ -32,39 +27,15 @@ DecodingStream DecodingPipeline::frame_stream() {
     return {&m_buf, m_framerates.pop()};
 }
 
-void DecodingPipeline::decode_video(std::vector<uint8_t> data) {
+void DecodingPipeline::decode(std::vector<uint8_t> data) {
     {
         std::unique_lock lk{m_mut};
-        m_medias.push_back(Video(std::move(data)));
-    }
-    m_cv.notify_one();
-}
-void DecodingPipeline::decode_image(std::vector<uint8_t> data) {
-    {
-        std::unique_lock lk{m_mut};
-        m_medias.push_back(Image(std::move(data)));
-    }
-    m_cv.notify_one();
-}
-void DecodingPipeline::decode(Media m) {
-    {
-        std::unique_lock lk{m_mut};
-        m_medias.push_back(std::move(m));
+        m_medias.push_back(std::move(data));
     }
     m_cv.notify_one();
 }
 
-void DecodingPipeline::decode(stdfs::path path) {
-    auto data = fs::read_bin(path);
-    auto ext = plai::to_lower(std::string(path.extension()));
-    if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
-        PLAI_DEBUG("deduced as image: {}", path.native());
-        decode_image(std::move(data));
-    } else {
-        PLAI_DEBUG("deduced as video: {}", path.native());
-        decode_video(std::move(data));
-    }
-}
+void DecodingPipeline::decode(stdfs::path path) { decode(fs::read_bin(path)); }
 
 size_t DecodingPipeline::queued_medias() const noexcept {
     auto lk = std::unique_lock(m_mut);
@@ -80,8 +51,7 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto media = std::move(m_medias.front());
         m_medias.pop_front();
         lk.unlock();
-        bool is_img = std::holds_alternative<Image>(media);
-        auto demux = demux_from_media(media);
+        auto demux = Demux(media);
         auto [stream_idx, stream] = demux.best_video_stream();
         lk.lock();
         m_framerates.push(stream.fps());
@@ -100,7 +70,6 @@ void DecodingPipeline::work(std::stop_token tok) {
                 m_buf.push(std::exchange(frm, {}));
 
             ++decoded_frames;
-            if (is_img) break;
         }
         PLAI_DEBUG("decoded total {} frames", decoded_frames);
         // end of stream

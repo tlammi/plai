@@ -1,6 +1,7 @@
 #include <plai/logs/logs.hpp>
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/play/player.hpp>
+#include <plai/util/match.hpp>
 #include <variant>
 
 #include "alpha_calc.hpp"
@@ -47,7 +48,8 @@ class Player::Impl {
                 if (!next) {
                     if (!m_opts.wait_media) { m_exiting = true; }
                 } else {
-                    m_decoder.decode(std::move(*next));
+                    m_decoder.decode(
+                        match(std::move(*next), [](auto v) { return v.data; }));
                     ++m_queued_medias;
                 }
             }
