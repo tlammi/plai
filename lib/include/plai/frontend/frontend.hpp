@@ -26,6 +26,11 @@ class Frontend {
      * */
     virtual std::optional<Event> poll_event() = 0;
 
+    /**
+     * \brief Tell frontend to stop
+     * */
+    virtual void stop() {}
+
     virtual Vec<int> dimensions() = 0;
 
     // TODO: make pure virtual
