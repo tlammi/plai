@@ -71,6 +71,7 @@ void DecodingPipeline::work(std::stop_token tok) {
             if (m_dims)
                 m_buf.push(m_conv(m_dims, std::exchange(frm, {})));
             else
+                // TODO: This will break things. Luckily m_dims is always set
                 m_buf.push(std::exchange(frm, {}));
 
             ++decoded_frames;
