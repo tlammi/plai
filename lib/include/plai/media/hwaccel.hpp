@@ -24,6 +24,7 @@ class HwAccelMeta {
  * */
 class HwAccel {
  public:
+    constexpr HwAccel() = default;
     explicit HwAccel(const HwAccelMeta& meta) : HwAccel(meta.type()) {}
     explicit HwAccel(hwaccel_t type);
 
@@ -88,5 +89,13 @@ class HwAccelRange {
 };
 
 HwAccelRange supported_hardware_accelerators() noexcept;
+
+/**
+ * \brief Reference hardware accelerator by name
+ *
+ * Returns a matching hardware accelerator. The returning HWAccel is
+ * contextually convertible to false if no matching accelerator was found.
+ * */
+HwAccel lookup_hardware_accelerator(const char* name);
 
 }  // namespace plai::media

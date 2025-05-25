@@ -72,4 +72,10 @@ HwAccelRange supported_hardware_accelerators() noexcept {
     return HwAccelRange(tp);
 }
 
+HwAccel lookup_hardware_accelerator(const char* name) {
+    for (const auto meta : supported_hardware_accelerators()) {
+        if (std::string_view(meta.name()) == name) { return HwAccel(meta); }
+    }
+    return HwAccel();
+}
 }  // namespace plai::media
