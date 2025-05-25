@@ -16,6 +16,10 @@ Decoder::Decoder() : m_ctx(avcodec_alloc_context3(nullptr)) {
     if (!m_ctx) throw std::bad_alloc();
 }
 
+Decoder::Decoder(const HwAccel& accel) : Decoder() {
+    m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
+}
+
 Decoder::Decoder(StreamView str) : Decoder() {
     AV_CHECK(avcodec_parameters_to_context(m_ctx, str.raw()->codecpar));
     m_ctx->pkt_timebase = str.raw()->time_base;
@@ -24,6 +28,10 @@ Decoder::Decoder(StreamView str) : Decoder() {
     PLAI_DEBUG("using codec: {}", codec->long_name);
     // TODO: codec options
     AV_CHECK(avcodec_open2(m_ctx, codec, nullptr));
+}
+
+Decoder::Decoder(StreamView str, const HwAccel& accel) : Decoder(str) {
+    m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
 }
 
 Decoder::Decoder(Decoder&& other) noexcept

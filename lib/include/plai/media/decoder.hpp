@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <plai/media/forward.hpp>
 #include <plai/media/frame.hpp>
+#include <plai/media/hwaccel.hpp>
 #include <plai/media/packet.hpp>
 #include <plai/media/stream_view.hpp>
 
@@ -11,8 +12,10 @@ namespace plai::media {
 class Decoder {
  public:
     Decoder();
+    explicit Decoder(const HwAccel& hw_accel);
 
     explicit Decoder(StreamView str);
+    Decoder(StreamView str, const HwAccel& hw_accel);
 
     // TODO: add constructors for setting codec explicitly
 
