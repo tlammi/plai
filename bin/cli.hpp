@@ -8,6 +8,7 @@
 namespace plaibin {
 
 struct Cli {
+    std::string accel{"sw"};
     std::string db;
     std::string socket;
     std::string watermark;

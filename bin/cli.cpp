@@ -99,6 +99,9 @@ Cli parse_cli(int argc, char** argv) {
                       "Watermark height scaling");
     parser.add_option("--watermark-pos", wm_pos, "Watermark position")
         ->transform(CLI::CheckedTransformer(wm_pos_mapping, CLI::ignore_case));
+    parser.add_option(
+        "--accel", out.accel,
+        "Hardware acceleration to use. 'sw' for software (default).");
 
     parser.add_option(
         "-b,--blend", blend,

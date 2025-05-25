@@ -60,7 +60,7 @@ void DecodingPipeline::work(std::stop_token tok) {
         lk.lock();
         m_framerates.push(stream.fps());
         lk.unlock();
-        auto decoder = Decoder(stream);
+        auto decoder = Decoder(stream, m_accel);
         auto pkt = Packet();
         auto frm = Frame();
         size_t decoded_frames = 0;

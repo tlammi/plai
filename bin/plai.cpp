@@ -93,6 +93,7 @@ int run(const Cli& args) {
     auto frontend = plai::frontend(ftype);
     frontend->set_fullscreen(args.fullscreen);
     auto opts = plai::play::PlayerOpts{
+        .accel = std::move(args.accel),
         .image_dur = args.img_dur,
         .blend_dur = args.blend,
         .wait_media = true,

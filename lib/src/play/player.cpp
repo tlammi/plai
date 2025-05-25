@@ -9,6 +9,21 @@
 namespace plai::play {
 using namespace std::literals::chrono_literals;
 namespace {
+media::HwAccel make_hwaccel(const std::string& nm) {
+    if (nm == "sw") {
+        PLAI_DEBUG("Using a software accelerator");
+        return {};
+    }
+    PLAI_DEBUG("looking up accelerator with name '{}'", nm);
+    auto res = media::lookup_hardware_accelerator(nm.c_str());
+    if (!res) {
+        PLAI_FATAL("Could not find hardware accelerator with name '{}'",
+                   nm.c_str());
+        // This should have a better exception
+        throw ValueError("asdf");
+    }
+    return res;
+}
 enum class State {
     EmptyDecoder,    // decoder has no data in it, initial state
     FullDecoder,     // decoder has data but not full
@@ -16,13 +31,16 @@ enum class State {
     EndOfMedias,     // No more medias available and no wait configured
     Done,            // All done, about to return
 };
-}
+}  // namespace
 class Player::Impl {
  public:
     static constexpr auto MAX_QUEUED_MEDIAS = std::size_t(5);
 
     Impl(Frontend* front, MediaSrc* media_src, PlayerOpts opts)
-        : m_front(front), m_src(media_src), m_opts(std::move(opts)) {
+        : m_front(front),
+          m_src(media_src),
+          m_opts(std::move(opts)),
+          m_decoder(make_hwaccel(m_opts.accel)) {
         m_watermark_textures.reserve(m_opts.watermarks.size());
         for (size_t i = 0; i < m_opts.watermarks.size(); ++i) {
             m_watermark_textures.push_back(m_front->texture());

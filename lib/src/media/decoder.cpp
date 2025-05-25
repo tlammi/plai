@@ -17,7 +17,7 @@ Decoder::Decoder() : m_ctx(avcodec_alloc_context3(nullptr)) {
 }
 
 Decoder::Decoder(const HwAccel& accel) : Decoder() {
-    m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
+    if (accel) m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
 }
 
 Decoder::Decoder(StreamView str) : Decoder() {
@@ -31,7 +31,7 @@ Decoder::Decoder(StreamView str) : Decoder() {
 }
 
 Decoder::Decoder(StreamView str, const HwAccel& accel) : Decoder(str) {
-    m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
+    if (accel) m_ctx->hw_device_ctx = av_buffer_ref(accel.raw());
 }
 
 Decoder::Decoder(Decoder&& other) noexcept

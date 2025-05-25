@@ -5,6 +5,7 @@
 #include <plai/media/decoding_stream.hpp>
 #include <plai/media/frame.hpp>
 #include <plai/media/frame_converter.hpp>
+#include <plai/media/hwaccel.hpp>
 #include <plai/media/media.hpp>
 #include <plai/persist_buffer.hpp>
 #include <plai/queue.hpp>
@@ -20,7 +21,7 @@ class DecodingPipeline {
     using Media = plai::media::Media;
 
     static constexpr size_t BUFFER_SIZE = 8;
-    DecodingPipeline() = default;
+    explicit DecodingPipeline(HwAccel accel = {}) : m_accel(std::move(accel)) {}
 
     DecodingPipeline(const DecodingPipeline&) = delete;
     DecodingPipeline& operator=(const DecodingPipeline&) = delete;
@@ -64,6 +65,7 @@ class DecodingPipeline {
     void work(std::stop_token tok);
 
     mutable std::mutex m_mut{};
+    HwAccel m_accel{};
     RingBuffer<Frame> m_buf{BUFFER_SIZE};
     std::condition_variable m_cv{};
     std::deque<std::vector<uint8_t>> m_medias{};
