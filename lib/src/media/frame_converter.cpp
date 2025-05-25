@@ -1,15 +1,25 @@
-#include <libavutil/pixfmt.h>
 
 #include <plai/exceptions.hpp>
+#include <plai/logs/logs.hpp>
 #include <plai/media/frame_converter.hpp>
 
+#include "av_check.hpp"
+
 extern "C" {
+#include <libavutil/hwcontext.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/pixfmt.h>
 #include <libswscale/swscale.h>
 }
 
 namespace plai::media {
 namespace {
+
+bool is_hardware_frame(AVPixelFormat fmt) {
+    const auto* desc = av_pix_fmt_desc_get(fmt);
+    if (!desc) return false;
+    return desc->flags & AV_PIX_FMT_FLAG_HWACCEL;
+}
 
 /**
  * Convert deprecated YUVJ pixel format to standard YUV (+ adjust colorspace
@@ -45,6 +55,7 @@ void adjust_colorspace(SwsContext* ctx) {
 // modify the pixels so they are compatible with SDL
 AVPixelFormat output_pixel_format(AVPixelFormat intermediate) {
     switch (intermediate) {
+        case AV_PIX_FMT_NV12:
         case AV_PIX_FMT_YUV420P:
         case AV_PIX_FMT_YUV422P:
         case AV_PIX_FMT_YUV440P:
@@ -61,8 +72,16 @@ FrameConverter::~FrameConverter() {
 Frame FrameConverter::operator()(Vec<int> dst_dims, const Frame& src,
                                  Frame dst) {
     auto pix_fmt = static_cast<AVPixelFormat>(src.raw()->format);
+    if (is_hardware_frame(pix_fmt)) {
+        Frame tmp{};
+        AV_CHECK(av_hwframe_transfer_data(tmp.raw(), src.raw(), 0));
+        return (*this)(dst_dims, tmp, std::move(dst));
+    }
     auto intermediate_fmt = intermediate_pixel_fmt(pix_fmt);
     auto out_pix_fmt = output_pixel_format(intermediate_fmt);
+    PLAI_DEBUG("Converting pixel format {} to {} via {}",
+               av_get_pix_fmt_name(pix_fmt), av_get_pix_fmt_name(out_pix_fmt),
+               av_get_pix_fmt_name(intermediate_fmt));
     auto src_dims = src.dims();
     m_ctx = sws_getCachedContext(m_ctx, src_dims.x, src_dims.y,
                                  intermediate_fmt, dst_dims.x, dst_dims.y,
