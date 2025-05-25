@@ -73,6 +73,8 @@ Frame FrameConverter::operator()(Vec<int> dst_dims, const Frame& src,
                                  Frame dst) {
     auto pix_fmt = static_cast<AVPixelFormat>(src.raw()->format);
     if (is_hardware_frame(pix_fmt)) {
+        PLAI_TRACE("received a hardware frame: {}",
+                   av_get_pix_fmt_name(pix_fmt));
         Frame tmp{};
         AV_CHECK(av_hwframe_transfer_data(tmp.raw(), src.raw(), 0));
         return (*this)(dst_dims, tmp, std::move(dst));
