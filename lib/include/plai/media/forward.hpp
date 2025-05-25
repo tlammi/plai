@@ -10,4 +10,5 @@ struct AVFormat;
 struct AVIOContext;
 struct AVStream;
 struct SwsContext;
+struct AVBufferRef;
 }
