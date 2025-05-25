@@ -79,7 +79,7 @@ Frame FrameConverter::operator()(Vec<int> dst_dims, const Frame& src,
     }
     auto intermediate_fmt = intermediate_pixel_fmt(pix_fmt);
     auto out_pix_fmt = output_pixel_format(intermediate_fmt);
-    PLAI_DEBUG("Converting pixel format {} to {} via {}",
+    PLAI_TRACE("Converting pixel format {} to {} via {}",
                av_get_pix_fmt_name(pix_fmt), av_get_pix_fmt_name(out_pix_fmt),
                av_get_pix_fmt_name(intermediate_fmt));
     auto src_dims = src.dims();
