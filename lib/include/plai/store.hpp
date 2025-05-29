@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <plai/c_str.hpp>
 #include <plai/crypto.hpp>
 #include <plai/virtual.hpp>
