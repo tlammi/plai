@@ -110,7 +110,7 @@ class Player::Impl {
                 rlimit();
                 continue;
             }
-            std::this_thread::sleep_for(1ms);
+            std::this_thread::sleep_for(10ms);
         }
     }
 
@@ -174,7 +174,6 @@ class Player::Impl {
 
     bool do_image_delay() {
         PLAI_TRACE("showing image");
-        auto rl = rate_limiter();
         auto start = Clock::now();
         auto end = start + m_opts.image_dur;
 
@@ -184,10 +183,7 @@ class Player::Impl {
                 if (!event) break;
                 if (std::holds_alternative<Quit>(*event)) return false;
             }
-            m_front->render_clear();
-            m_front_text->render_to({});
-            m_front->render_current();
-            rl();
+            std::this_thread::sleep_for(100ms);
         }
         PLAI_TRACE("image showed");
         return true;
