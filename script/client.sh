@@ -10,7 +10,7 @@ is_vid() {
 
 type() {
   if is_vid "$1"; then
-    printf "video"
+    printf "image"
   else
     printf "image"
   fi
