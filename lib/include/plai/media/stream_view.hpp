@@ -24,6 +24,8 @@ class StreamView {
 
     Frac<int> fps() const noexcept;
 
+    bool is_still_image() const noexcept;
+
  private:
     AVStream* m_raw{};
 };

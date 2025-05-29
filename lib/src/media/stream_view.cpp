@@ -20,4 +20,10 @@ Frac<int> StreamView::fps() const noexcept {
     auto den = m_raw->r_frame_rate.den;
     return {num, den};
 }
+bool StreamView::is_still_image() const noexcept {
+    const auto type = m_raw->codecpar->codec_type;
+    const auto id = m_raw->codecpar->codec_id;
+    if (type != AVMEDIA_TYPE_VIDEO) return false;
+    return id == AV_CODEC_ID_MJPEG || id == AV_CODEC_ID_JPEG2000;
+}
 }  // namespace plai::media
