@@ -59,11 +59,7 @@ class Player::Impl {
         auto rlimit = RateLimiter(Duration::zero());
         uint32_t frame_count = 0;
         while (true) {
-            while (true) {
-                auto event = m_front->poll_event();
-                if (!event) break;
-                if (std::holds_alternative<Quit>(*event)) return;
-            }
+            if (!poll_front()) return;
             if (m_clear_media_queue.exchange(false)) {
                 m_decoder.clear_media_queue();
                 m_queued_medias = 0;
@@ -83,8 +79,10 @@ class Player::Impl {
                 if (!m_stream) {
                     m_stream = m_decoder.frame_stream();
                     m_stream_iter = m_stream->begin();
+                    const auto was_still =
+                        std::exchange(m_still, m_stream->still());
                     if (m_prev_frame) {
-                        if (!do_blend()) return;
+                        if (!do_blend(was_still, m_still)) return;
                     }
                     rlimit = rate_limiter();
                 } else {
@@ -99,9 +97,7 @@ class Player::Impl {
                     ++frame_count;
                 } else {
                     PLAI_DEBUG("showed media with {} frames", frame_count);
-                    // HACK: The number of frames for images is 2, should be
-                    // checked...
-                    if (frame_count < 5) {
+                    if (frame_count == 1) {
                         if (!do_image_delay()) return;
                     }
                     frame_count = 0;
@@ -109,7 +105,8 @@ class Player::Impl {
                     m_stream.reset();
                     continue;
                 }
-                render_watermarks();
+                render_watermarks(m_still ? std::numeric_limits<uint8_t>::max()
+                                          : 0);
                 m_front->render_current();
                 rlimit();
                 continue;
@@ -123,11 +120,13 @@ class Player::Impl {
     void clear_media_queue() { m_clear_media_queue = true; }
 
  private:
-    void render_watermarks() {
+    void render_watermarks(
+        uint8_t alpha = std::numeric_limits<uint8_t>::max()) {
         for (auto elems :
              std::ranges::zip_view(m_watermark_textures, m_opts.watermarks)) {
             auto& [text, watermark] = elems;
             text->blend_mode(BlendMode::Blend);
+            text->alpha(alpha);
             text->render_to(watermark.target);
         }
     }
@@ -143,9 +142,10 @@ class Player::Impl {
         return RateLimiter(dur);
     }
 
-    bool do_blend() {
+    bool do_blend(bool was_still, bool is_still) {
         PLAI_TRACE("blending");
-        auto alpha_calc = AlphaCalc(m_opts.blend_dur);
+        static constexpr auto max_alpha = std::numeric_limits<uint8_t>::max();
+        static constexpr auto watermark_blend = 500ms;
         auto defer = Defer([&] {
             m_front_text->blend_mode(BlendMode::None);
             m_back_text->blend_mode(BlendMode::None);
@@ -153,14 +153,21 @@ class Player::Impl {
         });
         m_front_text->blend_mode(BlendMode::Blend);
         m_back_text->blend_mode(BlendMode::Blend);
-        while (true) {
-            while (true) {
-                auto event = m_front->poll_event();
-                if (!event) break;
-                if (std::holds_alternative<Quit>(*event)) { return false; }
-            }
-            static constexpr auto max_alpha =
-                std::numeric_limits<uint8_t>::max();
+        if (!was_still && is_still) {
+            auto watermark_alpha_calc = AlphaCalc(watermark_blend);
+            poll_loop([&] {
+                m_front->render_clear();
+                m_back_text->update(m_prev_frame);
+                auto alpha = watermark_alpha_calc();
+                render_watermarks(alpha);
+                m_front->render_current();
+                return alpha == max_alpha;
+            });
+        }
+        const auto watermark_static_alpha =
+            is_still || was_still ? max_alpha : 0;
+        auto alpha_calc = AlphaCalc(m_opts.blend_dur);
+        poll_loop([&] {
             m_front->render_clear();
             auto alpha = alpha_calc();
             m_back_text->alpha(max_alpha - alpha);
@@ -169,9 +176,22 @@ class Player::Impl {
             m_front_text->alpha(alpha);
             m_front_text->update(*m_stream_iter);
             m_front_text->render_to(IMG_TARGET);
-            render_watermarks();
+            render_watermarks(watermark_static_alpha);
             m_front->render_current();
-            if (alpha == max_alpha) break;
+            return alpha == max_alpha;
+        });
+
+        if (was_still && !is_still) {
+            auto watermark_alpha_calc = AlphaCalc(watermark_blend);
+            poll_loop([&] {
+                m_front->render_clear();
+                m_front_text->update(*m_stream_iter);
+                m_front_text->render_to(IMG_TARGET);
+                auto alpha = watermark_alpha_calc();
+                render_watermarks(max_alpha - alpha);
+                m_front->render_current();
+                return alpha == max_alpha;
+            });
         }
         return true;
     }
@@ -182,15 +202,27 @@ class Player::Impl {
         auto end = start + m_opts.image_dur;
 
         while (Clock::now() < end) {
-            while (true) {
-                auto event = m_front->poll_event();
-                if (!event) break;
-                if (std::holds_alternative<Quit>(*event)) return false;
-            }
+            if (!poll_front()) return false;
             std::this_thread::sleep_for(100ms);
         }
         PLAI_TRACE("image showed");
         return true;
+    }
+
+    bool poll_front() {
+        while (true) {
+            auto evt = m_front->poll_event();
+            if (!evt) return true;
+            if (std::holds_alternative<Quit>(*evt)) return false;
+        }
+    }
+
+    template <class F>
+    bool poll_loop(F f) {
+        while (true) {
+            if (!poll_front()) return false;
+            if (f()) return true;
+        }
     }
 
     Frontend* m_front;
@@ -205,6 +237,7 @@ class Player::Impl {
     std::unique_ptr<Texture> m_back_text{m_front->texture()};
     size_t m_queued_medias{0};
     bool m_exiting{false};
+    bool m_still{false};
     std::atomic_bool m_clear_media_queue{false};
 };
 
