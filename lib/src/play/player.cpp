@@ -7,6 +7,10 @@
 #include "alpha_calc.hpp"
 
 namespace plai::play {
+namespace {
+constexpr auto IMG_TARGET =
+    RenderTarget{.vertical = Position::Middle, .horizontal = Position::Middle};
+}
 using namespace std::literals::chrono_literals;
 namespace {
 media::HwAccel make_hwaccel(const std::string& nm) {
@@ -91,7 +95,7 @@ class Player::Impl {
                 if (m_stream_iter != m_stream->end()) {
                     auto& frm = *m_stream_iter;
                     m_front_text->update(frm);
-                    m_front_text->render_to({});
+                    m_front_text->render_to(IMG_TARGET);
                     ++frame_count;
                 } else {
                     PLAI_DEBUG("showed media with {} frames", frame_count);
@@ -161,10 +165,10 @@ class Player::Impl {
             auto alpha = alpha_calc();
             m_back_text->alpha(max_alpha - alpha);
             m_back_text->update(m_prev_frame);
-            m_back_text->render_to({});
+            m_back_text->render_to(IMG_TARGET);
             m_front_text->alpha(alpha);
             m_front_text->update(*m_stream_iter);
-            m_front_text->render_to({});
+            m_front_text->render_to(IMG_TARGET);
             render_watermarks();
             m_front->render_current();
             if (alpha == max_alpha) break;
