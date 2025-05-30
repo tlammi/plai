@@ -7,6 +7,22 @@
 #include <print>
 
 namespace plai::media {
+namespace {
+
+// Scale src dimensions up/down without distortions so dst act as a bounding
+// rect for src
+Vec<int> scale_dimensions(Vec<int> src, Vec<int> dst) {
+    const double w_aspect = double(dst.x) / double(src.x);
+    const double h_aspect = double(dst.y) / double(src.y);
+    const auto scaling = std::min(w_aspect, h_aspect);
+    PLAI_NOTE("src dimensions: ({}, {})", src.x, src.y);
+    PLAI_NOTE("dst dimensions: ({}, {})", dst.x, dst.y);
+    PLAI_NOTE("Scaling frame with: {}", scaling);
+    return {.x = static_cast<int>(src.x * scaling),
+            .y = static_cast<int>(src.y * scaling)};
+}
+
+}  // namespace
 
 DecodingPipeline::~DecodingPipeline() {
     m_worker.request_stop();
@@ -63,20 +79,37 @@ void DecodingPipeline::work(std::stop_token tok) {
         auto decoder = Decoder(stream, m_accel);
         auto pkt = Packet();
         auto frm = Frame();
-        size_t decoded_frames = 0;
-        while (!tok.stop_requested() && demux >> pkt) {
-            if (pkt.stream_index() != stream_idx) continue;
-            decoder << pkt;
-            if (!(decoder >> frm)) continue;
-            if (m_dims)
-                m_buf.push(m_conv(m_dims, std::exchange(frm, {})));
-            else
-                // TODO: This will break things. Luckily m_dims is always set
-                m_buf.push(std::exchange(frm, {}));
+        if (stream.is_still_image()) {
+            auto real_frm = Frame();
+            while (!tok.stop_requested() && demux >> pkt) {
+                if (pkt.stream_index() != stream_idx) continue;
+                decoder << pkt;
+                if (!(decoder >> frm)) continue;
+                if (frm.width() > real_frm.width())
+                    real_frm = std::exchange(frm, {});
+            }
+            auto input_dims = real_frm.dims();
+            m_buf.push(m_conv(scale_dimensions(input_dims, m_dims),
+                              std::move(real_frm)));
+        } else {
+            size_t decoded_frames = 0;
+            while (!tok.stop_requested() && demux >> pkt) {
+                if (pkt.stream_index() != stream_idx) continue;
+                decoder << pkt;
+                if (!(decoder >> frm)) continue;
+                if (m_dims) {
+                    auto input_dims = frm.dims();
+                    m_buf.push(m_conv(scale_dimensions(input_dims, m_dims),
+                                      std::exchange(frm, {})));
+                } else
+                    // TODO: This will break things. Luckily m_dims is always
+                    // set
+                    m_buf.push(std::exchange(frm, {}));
 
-            ++decoded_frames;
+                ++decoded_frames;
+            }
+            PLAI_DEBUG("decoded total {} frames", decoded_frames);
         }
-        PLAI_DEBUG("decoded total {} frames", decoded_frames);
         // end of stream
         m_buf.push(Frame());
     }
