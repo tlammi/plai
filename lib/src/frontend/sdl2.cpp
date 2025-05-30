@@ -294,13 +294,12 @@ class SdlFrontend final : public Frontend {
 
  private:
     void set_fullscreen_impl(bool v) override {
+        m_full_screen = v;
         SDL_SetWindowFullscreen(
-            m_win.get(), m_full_screen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+            m_win.get(), m_full_screen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 
-    void toggle_fullscreen() {
-        set_fullscreen_impl(std::exchange(m_full_screen, !m_full_screen));
-    }
+    void toggle_fullscreen() { set_fullscreen_impl(!m_full_screen); }
 
     std::shared_ptr<detail::Sdl2Init> m_sdl{detail::Sdl2Init::instance()};
     UniqPtr<SDL_Window> m_win{sdl::make_window("plai")};
