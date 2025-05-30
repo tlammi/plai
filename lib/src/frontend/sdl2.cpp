@@ -230,7 +230,8 @@ class SdlTexture final : public Texture {
         if (tgt.scaling == Scaling::Fit) {
             auto dst = detail::render_dst_scaled(tgt.vertical, tgt.horizontal,
                                                  m_dims, win_dims, scaling);
-            SDL_RenderCopy(m_rend, m_text.get(), nullptr, &dst);
+            const SDL_Rect src{.x = 0, .y = 0, .w = m_dims.x, .h = m_dims.y};
+            SDL_RenderCopy(m_rend, m_text.get(), &src, &dst);
         } else {
             auto dst = detail::render_dst_stretched(
                 tgt.vertical, tgt.horizontal, win_dims, scaling);
