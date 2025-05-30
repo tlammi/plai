@@ -24,7 +24,8 @@ DecodingPipeline::~DecodingPipeline() {
 }
 
 DecodingStream DecodingPipeline::frame_stream() {
-    return {&m_buf, m_framerates.pop()};
+    auto meta = m_metas.pop();
+    return {&m_buf, std::move(meta.fps), meta.still};
 }
 
 void DecodingPipeline::decode(std::vector<uint8_t> data) {
@@ -57,8 +58,9 @@ void DecodingPipeline::work(std::stop_token tok) {
         lk.unlock();
         auto demux = Demux(media);
         auto [stream_idx, stream] = demux.best_video_stream();
+        bool still = stream.is_still_image();
         lk.lock();
-        m_framerates.push(stream.fps());
+        m_metas.push({.fps = stream.fps(), .still = still});
         lk.unlock();
         auto decoder = Decoder(stream, m_accel);
         auto pkt = Packet();

@@ -62,6 +62,11 @@ class DecodingPipeline {
     size_t queued_medias() const noexcept;
 
  private:
+    struct Meta {
+        Frac<int> fps;
+        bool still{};
+    };
+
     void work(std::stop_token tok);
 
     mutable std::mutex m_mut{};
@@ -69,7 +74,7 @@ class DecodingPipeline {
     RingBuffer<Frame> m_buf{BUFFER_SIZE};
     std::condition_variable m_cv{};
     std::deque<std::vector<uint8_t>> m_medias{};
-    Queue<Frac<int>> m_framerates{};
+    Queue<Meta> m_metas{};
     Vec<int> m_dims{};
     FrameConverter m_conv{};
     std::jthread m_worker{[&](std::stop_token tok) { work(tok); }};

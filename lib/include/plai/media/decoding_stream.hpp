@@ -55,11 +55,19 @@ class DecodingStream {
     auto begin() { return Iter{m_buf}; }
     constexpr Sentinel end() const noexcept { return {}; }
 
+    /**
+     * \brief Whether the stream produces a sill image
+     *
+     * This effectively means that the resulting media has a single frame.
+     * */
+    [[nodiscard]] bool still() const noexcept { return m_still; }
+
  private:
-    DecodingStream(RingBuffer<Frame>* buf, Frac<int> fps)
-        : m_buf(buf), m_fps(fps) {}
+    DecodingStream(RingBuffer<Frame>* buf, Frac<int> fps, bool still)
+        : m_buf(buf), m_fps(fps), m_still(still) {}
 
     RingBuffer<Frame>* m_buf{};
     Frac<int> m_fps{0, 0};
+    bool m_still{};
 };
 }  // namespace plai::media
