@@ -1,5 +1,6 @@
 
-MESON_CMD ?= meson setup
+MESON_OPTIONS ?= 
+MESON_CMD ?= meson setup $(MESON_OPTIONS)
 
 ifeq ($(STATIC_LIB),1)
 	MESON_CMD := $(MESON_CMD) -Ddefault_library=static

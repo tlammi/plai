@@ -17,4 +17,6 @@ endif
 
 subdir('lib')
 subdir('bin')
-subdir('test')
+if get_option('tests')
+  subdir('test')
+endif
