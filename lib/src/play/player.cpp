@@ -155,7 +155,7 @@ class Player::Impl {
         m_back_text->blend_mode(BlendMode::Blend);
         if (!was_still && is_still) {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
-            poll_loop([&] {
+            auto res = poll_loop([&] {
                 m_front->render_clear();
                 m_back_text->update(m_prev_frame);
                 auto alpha = watermark_alpha_calc();
@@ -163,11 +163,12 @@ class Player::Impl {
                 m_front->render_current();
                 return alpha == max_alpha;
             });
+            if (!res) return false;
         }
         const auto watermark_static_alpha =
             is_still || was_still ? max_alpha : 0;
         auto alpha_calc = AlphaCalc(m_opts.blend_dur);
-        poll_loop([&] {
+        auto res = poll_loop([&] {
             m_front->render_clear();
             auto alpha = alpha_calc();
             m_back_text->alpha(max_alpha - alpha);
@@ -180,10 +181,11 @@ class Player::Impl {
             m_front->render_current();
             return alpha == max_alpha;
         });
+        if (!res) return false;
 
         if (was_still && !is_still) {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
-            poll_loop([&] {
+            auto res = poll_loop([&] {
                 m_front->render_clear();
                 m_front_text->update(*m_stream_iter);
                 m_front_text->render_to(IMG_TARGET);
@@ -192,6 +194,7 @@ class Player::Impl {
                 m_front->render_current();
                 return alpha == max_alpha;
             });
+            if (!res) return res;
         }
         return true;
     }
