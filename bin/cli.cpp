@@ -99,13 +99,9 @@ Cli parse_cli(int argc, char** argv) {
                       "Watermark height scaling");
     parser.add_option("--watermark-pos", wm_pos, "Watermark position")
         ->transform(CLI::CheckedTransformer(wm_pos_mapping, CLI::ignore_case));
-    parser.add_flag(
-        "--watermark-stretch,!--no-watermark-stretch",
-        [&](bool v) {
-            out.watermark_tgt.scaling =
-                v ? plai::Scaling::Stretch : plai::Scaling::Fit;
-        },
-        "Whether to stretch watermark");
+    bool stretch = false;
+    parser.add_flag("--watermark-stretch,!--no-watermark-stretch", stretch,
+                    "Whether to stretch watermark");
     parser.add_option(
         "--accel", out.accel,
         "Hardware acceleration to use. 'sw' for software (default).");
@@ -126,6 +122,8 @@ Cli parse_cli(int argc, char** argv) {
     } catch (const CLI::ParseError& e) { throw Exit(parser.exit(e)); }
     out.watermark_tgt.vertical = pos_vertical(wm_pos);
     out.watermark_tgt.horizontal = pos_horizontal(wm_pos);
+    out.watermark_tgt.scaling =
+        stretch ? plai::Scaling::Stretch : plai::Scaling::Fit;
     out.blend = to_duration(blend);
     out.img_dur = to_duration(img_dur);
     return out;
