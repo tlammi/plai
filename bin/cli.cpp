@@ -110,7 +110,7 @@ Cli parse_cli(int argc, char** argv) {
         "--img-dur", img_dur,
         std::format("Duration to show images in seconds. Default: {}",
                     img_dur));
-    parser.add_flag("--fullscreen,!--no-full-screen", out.fullscreen,
+    parser.add_flag("--fullscreen,!--no-fullscreen", out.fullscreen,
                     "Start with fullscreen enabled");
     parser.add_flag("--void", out.void_frontend,
                     "Use the void frontend, i.e. discard the output");
