@@ -1,6 +1,8 @@
 FROM alpine:latest
 
 RUN apk update
+RUN apk add g++ g++-aarch64-none-elf py3-pip cmake make pkgconf ninja gdb
+RUN pip install --break-system-packages meson
 RUN apk add ffmpeg-dev sdl2-dev sqlite-dev openssl-dev boost-dev
 # These are implicit SDL2 dependencies
 RUN apk add libxkbcommon wayland-libs-cursor wayland-libs-egl mesa-gbm mesa-vulkan-swrast
