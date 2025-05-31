@@ -5,6 +5,7 @@
 #include "cli.hpp"
 
 namespace plaibin {
+using namespace std::literals;
 
 plai::media::Media mk_media(plai::net::MediaType t, auto data) {
     using enum plai::net::MediaType;
@@ -77,12 +78,16 @@ class ApiImpl : public plai::net::DefaultApi {
 };
 
 int run(const Cli& args) {
+    auto start = plai::Clock::now();
+    static constexpr auto player_timeout = 5s;
     std::atomic<plai::play::Player*> ptr_player{};
     static constexpr std::array<plai::os::Signal, 1> mask{SIGINT};
     plai::os::SignalListener listener(mask, [&] {
-        if (!ptr_player) return false;
-        ptr_player.load()->stop();
-        return true;
+        if (ptr_player) {
+            ptr_player.load()->stop();
+            return true;
+        }
+        return plai::Clock::now() - start > player_timeout;
     });
     plai::logs::init(args.log_level);
 
