@@ -117,6 +117,8 @@ Cli parse_cli(int argc, char** argv) {
                     "Start with fullscreen enabled");
     parser.add_flag("--void", out.void_frontend,
                     "Use the void frontend, i.e. discard the output");
+    parser.add_flag("--list-accel", out.list_accel,
+                    "List available accelerators");
     try {
         parser.parse(argc, argv);
     } catch (const CLI::ParseError& e) { throw Exit(parser.exit(e)); }

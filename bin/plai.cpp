@@ -123,7 +123,14 @@ int run(const Cli& args) {
 
 int do_main(int argc, char** argv) {
     try {
-        return run(parse_cli(argc, argv));
+        auto args = parse_cli(argc, argv);
+        if (args.list_accel) {
+            for (auto accel : plai::media::supported_hardware_accelerators()) {
+                std::println("{}", accel.name());
+            }
+            return EXIT_SUCCESS;
+        }
+        return run(args);
     } catch (const Exit& e) {
         return e.code();
     } catch (const std::exception& e) {
