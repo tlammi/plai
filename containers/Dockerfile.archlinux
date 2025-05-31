@@ -1,0 +1,11 @@
+FROM archlinux:latest
+
+RUN pacman --noconfirm -Syuu
+RUN pacman --noconfirm -S gcc aarch64-linux-gnu-gcc python-pip cmake make pkgconf ninja gdb
+RUN pip install --break-system-packages meson
+RUN pacman --noconfirm -S ffmpeg sdl3 sdl2 sqlite openssl boost cli11
+# These are implicit SDL3 dependencies
+RUN pacman --noconfirm -S libxkbcommon egl-wayland
+RUN pacman --noconfirm -S sudo
+
+RUN echo "ALL ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 PROJECT_ROOT="$(realpath $(dirname ${BASH_SOURCE[0]})/..)"
 
 podman run -e XDG_RUNTIME_DIR=/run/xdg \
@@ -11,4 +13,5 @@ podman run -e XDG_RUNTIME_DIR=/run/xdg \
   --userns=keep-id \
   --group-add=keep-groups \
   --workdir=/mnt \
-  plai-build sh
+  --privileged \
+  "plai-$1" sh

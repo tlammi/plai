@@ -1,7 +1,9 @@
 #!/bin/bash
 
+: ${PLAI_SOCKET:=/tmp/plai.sock}
+
 ucurl() {
-  curl --unix-socket /tmp/plai.sock "${@}"
+  curl --unix-socket "$PLAI_SOCKET" "${@}"
 }
 
 is_vid() {

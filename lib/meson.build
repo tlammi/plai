@@ -1,11 +1,23 @@
 
 
+# DEPS = [
+#   # segfaults occur with older versions
+#   dependency('libavcodec', version: '>=61'),
+#   dependency('libavformat', version: '>=61'),
+#   dependency('libavutil', version: '>=59'),
+#   dependency('libswscale', version: '>=8.1.100'),
+#   dependency('sdl2', version: '>=2.30'),
+#   dependency('threads'),
+#   dependency('sqlite3'),
+#   dependency('openssl'),
+#   reflectcpp_dep,
+# ]
 DEPS = [
   # segfaults occur with older versions
-  dependency('libavcodec', version: '>=61'),
-  dependency('libavformat', version: '>=61'),
-  dependency('libavutil', version: '>=59'),
-  dependency('libswscale', version: '>=8.1.100'),
+  dependency('libavcodec', version: '>=60'),
+  dependency('libavformat', version: '>=60'),
+  dependency('libavutil', version: '>=58'),
+  dependency('libswscale', version: '>=7.5.100'),
   dependency('sdl2', version: '>=2.30'),
   dependency('threads'),
   dependency('sqlite3'),
