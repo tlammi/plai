@@ -2,6 +2,9 @@ project('plai', 'cpp', default_options: {'cpp_std': 'c++23', 'cpp_rtti': false})
 
 cmake = import('cmake')
 
+add_project_arguments('-Wfatal-errors', language:'cpp')
+
+
 reflectcpp_dep = dependency('reflect-cpp', 'reflectcpp', required: false)
 
 if not reflectcpp_dep.found()

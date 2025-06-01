@@ -1,9 +1,9 @@
 #pragma once
 
 #include <compare>
-#include <format>
 #include <map>
 #include <plai/exceptions.hpp>
+#include <plai/format.hpp>
 #include <plai/util/view_generator.hpp>
 #include <string>
 #include <string_view>
