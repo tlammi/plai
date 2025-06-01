@@ -36,7 +36,7 @@ constexpr std::string to_lower(std::string_view s) {
 constexpr auto to_hex_str(std::span<const uint8_t> span) {
     std::string out(span.size() * 2, '\0');
     size_t idx = 0;
-    static constexpr auto to_char = [](std::byte in) {
+    constexpr auto to_char = [](std::byte in) {
         auto c = std::to_integer<uint8_t>(in);
         // NOLINTBEGIN
         if (c >= 0x00 && c <= 0x09) return static_cast<char>(c + '0');

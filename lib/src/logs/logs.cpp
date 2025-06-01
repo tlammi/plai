@@ -65,7 +65,7 @@ void init(Level lvl) {
 namespace detail {
 void push_log(Level lvl, SystemTimePoint stp, TimePoint tp, std::string msg) {
     const auto lvl_name = logs_detail::lvl_to_str(lvl);
-    std::println(stderr, "{:%F %T} [{}] {}",
+    println(stderr, "{:%F %T} [{}] {}",
                  std::chrono::floor<std::chrono::milliseconds>(stp), lvl_name,
                  msg);
 }
