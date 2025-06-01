@@ -64,7 +64,6 @@ void init(Level lvl, const std::filesystem::path& logfile) {
         av_log_set_callback(&logs_detail::ffmpeg_log_cb);
     }
     if (logfile != "-" && !logfile.empty()) {
-        std::println("logfile: {}", logfile.native());
         logs_detail::g_log_stream =
             std::unique_ptr<std::FILE, void (*)(std::FILE*)>(
                 std::fopen(logfile.native().c_str(), "w"),
