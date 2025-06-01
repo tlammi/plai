@@ -4,7 +4,8 @@
 #include <plai/media/decoding_pipeline.hpp>
 #include <plai/media/demux.hpp>
 #include <plai/util/match.hpp>
-#include <print>
+
+#include "plai/format.hpp"
 
 namespace plai::media {
 

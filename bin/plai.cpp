@@ -1,6 +1,5 @@
 #include <csignal>
 #include <plai.hpp>
-#include <print>
 
 #include "cli.hpp"
 
@@ -20,7 +19,7 @@ plai::media::Media read_media(plai::Store& store,
                               const plai::net::MediaListEntry& entry) {
     const auto& [type, key] = entry;
     auto full_key =
-        std::format("{}/{}", plai::net::serialize_media_type(type), key);
+        plai::format("{}/{}", plai::net::serialize_media_type(type), key);
     return mk_media(type, store.read(full_key));
 }
 
@@ -126,7 +125,7 @@ int do_main(int argc, char** argv) {
         auto args = parse_cli(argc, argv);
         if (args.list_accel) {
             for (auto accel : plai::media::supported_hardware_accelerators()) {
-                std::println("{}", accel.name());
+                plai::println("{}", accel.name());
             }
             return EXIT_SUCCESS;
         }
@@ -134,7 +133,7 @@ int do_main(int argc, char** argv) {
     } catch (const Exit& e) {
         return e.code();
     } catch (const std::exception& e) {
-        std::println(stderr, "{}", e.what());
+        plai::println(stderr, "{}", e.what());
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

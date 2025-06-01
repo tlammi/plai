@@ -50,10 +50,8 @@ class RateLimiter {
         precision_sleep_until(m_prev);
     }
 
-    template <class S>
-    decltype(auto) period(this S&& self) noexcept {
-        return std::forward<S>(self).m_period;
-    }
+    auto& period() noexcept { return m_period; }
+    const auto& period() const noexcept { return m_period; }
 
  private:
     Duration m_period;

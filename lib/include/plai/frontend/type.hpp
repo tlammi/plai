@@ -1,7 +1,7 @@
 #pragma once
 
-#include <format>
 #include <plai/exceptions.hpp>
+#include <plai/format.hpp>
 #include <ranges>
 #include <string_view>
 #include <utility>
@@ -74,7 +74,7 @@ constexpr FrontendType frontend_type(std::string_view s) {
     namespace rv = std::ranges::views;
     namespace r = std::ranges;
     using enum FrontendType;
-    static constexpr auto to_lower = [](char c) {
+    constexpr auto to_lower = [](char c) {
         if (c >= 'A' && c <= 'Z')
             return static_cast<char>(static_cast<char>(c - 'A') + 'a');
         return c;
@@ -83,6 +83,6 @@ constexpr FrontendType frontend_type(std::string_view s) {
     using namespace std::literals::string_view_literals;
     if (r::equal(lower, "sdl2"sv)) return Sdl2;
     if (r::equal(lower, "void"sv)) return Void;
-    throw ValueError(std::format("unknown frontend: {}", s));
+    throw ValueError(plai::format("unknown frontend: {}", s));
 }
 }  // namespace plai

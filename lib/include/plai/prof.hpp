@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <mutex>
 #include <plai/time.hpp>
 #include <string_view>
+#include <vector>
 
 namespace plai {
 
@@ -85,4 +87,3 @@ void profiling_statistics(ProfileStatistics* stats);
 [[nodiscard]] Profiler profile(std::string_view nm, ProfileStatistics* stats);
 
 }  // namespace plai
-

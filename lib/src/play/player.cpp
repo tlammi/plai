@@ -122,9 +122,9 @@ class Player::Impl {
  private:
     void render_watermarks(
         uint8_t alpha = std::numeric_limits<uint8_t>::max()) {
-        for (auto elems :
-             std::ranges::zip_view(m_watermark_textures, m_opts.watermarks)) {
-            auto& [text, watermark] = elems;
+        for (size_t i = 0; i < m_watermark_textures.size(); ++i) {
+            auto& text = m_watermark_textures.at(i);
+            auto& watermark = m_opts.watermarks.at(i);
             text->blend_mode(BlendMode::Blend);
             text->alpha(alpha);
             text->render_to(watermark.target);

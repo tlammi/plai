@@ -1,10 +1,12 @@
+#include <utility>
+// above needed for a missing header in boost
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <filesystem>
+#include <plai/format.hpp>
 #include <plai/logs/logs.hpp>
 #include <plai/net/http/server.hpp>
 #include <plai/util/defer.hpp>
-#include <print>
 
 namespace plai::net::http {
 namespace local = boost::asio::local;
@@ -202,9 +204,11 @@ class Server::Impl {
         }
         if (ec) throw boost::system::system_error(ec);
         auto defer = Defer{[&] {
-            m_acceptor.async_accept(m_ioc, [&](const auto& ec, auto sock) {
-                step(ec, std::move(sock));
-            });
+            m_acceptor.async_accept(
+                m_ioc,
+                [&](const auto& ec, local::stream_protocol::socket sock) {
+                    step(ec, std::move(sock));
+                });
         }};
         auto ctx = ParsingCtx(
             beast::basic_stream<local::stream_protocol>(std::move(sock)));

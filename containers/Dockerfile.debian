@@ -1,0 +1,11 @@
+FROM debian:bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update
+RUN apt install -y g++ python3-pip cmake make pkgconf ninja-build
+RUN pip install --break-system-packages meson
+RUN apt install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libsdl2-dev libsqlite3-dev libssl-dev libboost-dev libfmt-dev
+RUN apt install -y sudo
+
+RUN echo "ALL ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers

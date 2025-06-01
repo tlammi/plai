@@ -49,15 +49,11 @@ class Frac {
 
     constexpr Frac reciprocal() const noexcept { return {m_den, m_num}; }
 
-    template <class S>
-    constexpr decltype(auto) num(this S&& self) noexcept {
-        return std::forward<S>(self).m_num;
-    }
+    constexpr auto& num() noexcept { return m_num; }
+    constexpr const auto& num() const noexcept { return m_num; }
 
-    template <class S>
-    constexpr decltype(auto) den(this S&& self) noexcept {
-        return std::forward<S>(self).m_den;
-    }
+    constexpr auto& den() noexcept { return m_den; }
+    constexpr const auto& den() const noexcept { return m_den; }
 
     constexpr Frac& operator+=(const Frac& other) noexcept {
         assert(m_den == other.m_den);

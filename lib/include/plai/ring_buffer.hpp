@@ -10,7 +10,7 @@ namespace buf_detail {
 
 template <class T>
 union Union {
-    constexpr Union() noexcept = default;
+    constexpr Union() : unused{} {}
 
     Union(const Union&) = delete;
     Union& operator=(const Union&) = delete;

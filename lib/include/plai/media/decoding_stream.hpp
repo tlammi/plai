@@ -25,9 +25,7 @@ class DecodingStream {
         explicit Iter(Sentinel /*unused*/) {}
 
         bool operator==(Sentinel /*unused*/) const noexcept { return !m_curr; }
-        constexpr bool operator!=(Sentinel s) const noexcept {
-            return !(*this == s);
-        }
+        bool operator!=(Sentinel s) const noexcept { return !(*this == s); }
 
         Iter& operator++() {
             m_curr = m_buf->pop();
