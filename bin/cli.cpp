@@ -84,6 +84,8 @@ Cli parse_cli(int argc, char** argv) {
 
     parser.add_option("-l,--loglevel", out.log_level, "Log level")
         ->transform(CLI::CheckedTransformer(log_mapping, CLI::ignore_case));
+    parser.add_option("--logfile", out.log_file,
+                      "Log file path. If '-' (default) or '' stderr is used");
     parser.add_option("-d,--db", out.db,
                       "Database path. Use ':memory:' for in-memory database. "
                       "Default: ':memory:'.");

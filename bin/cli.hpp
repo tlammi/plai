@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <plai/frontend/type.hpp>
 #include <plai/logs/logs.hpp>
 #include <plai/time.hpp>
@@ -17,6 +18,7 @@ struct Cli {
     plai::Duration img_dur{};
     bool void_frontend = false;
     plai::logs::Level log_level{plai::logs::Level::Info};
+    std::filesystem::path log_file{"-"};
     bool fullscreen{false};
     bool list_accel{};
 };

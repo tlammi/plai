@@ -88,7 +88,7 @@ int run(const Cli& args) {
         }
         return plai::Clock::now() - start > player_timeout;
     });
-    plai::logs::init(args.log_level);
+    plai::logs::init(args.log_level, args.log_file);
 
     auto store = plai::sqlite_store(args.db);
     auto playlist = Playlist(store.get());

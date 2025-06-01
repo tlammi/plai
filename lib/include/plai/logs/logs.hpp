@@ -1,12 +1,13 @@
 #pragma once
 
+#include <filesystem>
 #include <plai/format.hpp>
 #include <plai/logs/level.hpp>
 #include <plai/time.hpp>
 
 namespace plai::logs {
 
-void init(Level lvl);
+void init(Level lvl, const std::filesystem::path& logfile = "-");
 
 namespace detail {
 void push_log(Level lvl, SystemTimePoint stp, TimePoint tp, std::string msg);

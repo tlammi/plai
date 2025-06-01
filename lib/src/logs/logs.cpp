@@ -14,6 +14,9 @@ namespace plai::logs {
 namespace {
 namespace logs_detail {
 Level g_level{};
+std::unique_ptr<std::FILE, void (*)(std::FILE*)> g_log_stream{
+    stderr, [](auto* /*unused*/) {}};
+
 constexpr std::string_view lvl_to_str(Level l) {
     using enum Level;
     switch (l) {
@@ -54,18 +57,25 @@ void ffmpeg_log_cb(void* /*unused*/, int /*level*/, const char* fmt,
 
 }  // namespace
 
-void init(Level lvl) {
+void init(Level lvl, const std::filesystem::path& logfile) {
     logs_detail::g_level = lvl;
     // TODO: use level
     if (lvl <= Level::Trace) {
         av_log_set_callback(&logs_detail::ffmpeg_log_cb);
+    }
+    if (logfile != "-" && !logfile.empty()) {
+        std::println("logfile: {}", logfile.native());
+        logs_detail::g_log_stream =
+            std::unique_ptr<std::FILE, void (*)(std::FILE*)>(
+                std::fopen(logfile.native().c_str(), "w"),
+                [](std::FILE* f) { std::fclose(f); });
     }
 }
 
 namespace detail {
 void push_log(Level lvl, SystemTimePoint stp, TimePoint tp, std::string msg) {
     const auto lvl_name = logs_detail::lvl_to_str(lvl);
-    plai::println(stderr, "{:%F %T} [{}] {}",
+    plai::println(logs_detail::g_log_stream.get(), "{:%F %T} [{}] {}",
                   std::chrono::floor<std::chrono::milliseconds>(stp), lvl_name,
                   msg);
 }
