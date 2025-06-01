@@ -46,7 +46,7 @@ void println(fmt::format_string<Ts...> f, Ts&&... ts) {
 template <class... Ts>
 void println(std::FILE* stream, fmt::format_string<Ts...> f, Ts&&... ts) {
     fmt::print(stream, f, std::forward<Ts>(ts)...);
-    fmt::print("\n");
+    fmt::print(stream, "\n");
 }
 
 }  // namespace plai
