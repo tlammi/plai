@@ -11,7 +11,7 @@ std::vector<uint8_t> read_bin(const stdfs::path& path) {
     // NOLINTNEXTLINE
     FILE* f = fopen(path.native().c_str(), "r");
     if (!f) {
-        throw ValueError(std::format("could not open {}", path.native()));
+        throw ValueError(format("could not open {}", path.native()));
     }
     // NOLINTNEXTLINE
     auto defer = Defer([&] { fclose(f); });

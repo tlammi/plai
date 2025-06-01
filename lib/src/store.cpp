@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 
+#include <algorithm>
 #include <cassert>
 #include <plai/crypto.hpp>
 #include <plai/format.hpp>
@@ -25,12 +26,11 @@ constexpr CStr prune_marked_stmt =
 
 std::string lock_stmt(std::span<CStr> keys, bool lock) {
     assert(!keys.empty());
-    std::string stmt =
-        std::format("UPDATE plai SET locked={} WHERE name=\"{}\"", lock ? 1 : 0,
-                    keys.front().view());
+    std::string stmt = format("UPDATE plai SET locked={} WHERE name=\"{}\"",
+                              lock ? 1 : 0, keys.front().view());
     keys = keys.subspan(1);
     while (!keys.empty()) {
-        stmt += std::format(" OR name=\"{}\"", keys.front().view());
+        stmt += format(" OR name=\"{}\"", keys.front().view());
         keys = keys.subspan(1);
     }
     stmt += ";";
@@ -120,8 +120,8 @@ class SqliteStore final : public Store {
         int res = SQLITE_BUSY;
         while (res == SQLITE_BUSY) { res = sqlite::step_one(m_conn, stmt); }
         if (res != SQLITE_ROW)
-            throw ValueError(std::format("no data in storage matching key '{}'",
-                                         key.view()));
+            throw ValueError(
+                format("no data in storage matching key '{}'", key.view()));
         auto data = sqlite::unbind_all<std::vector<uint8_t>>(m_conn, stmt);
         sqlite::step_all(m_conn, stmt);
         return std::get<0>(std::move(data));

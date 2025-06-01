@@ -11,11 +11,11 @@ namespace {
 sigset_t build_sigset(std::span<const Signal> mask) {
     sigset_t out{};
     auto res = sigemptyset(&out);
-    if (res) throw ValueError(std::format("sigemptyset: {}", strerror(errno)));
+    if (res) throw ValueError(format("sigemptyset: {}", strerror(errno)));
     for (auto s : mask) {
         res = sigaddset(&out, s);
         if (res)
-            throw ValueError(std::format("sigaddset: {}", strerror(errno)));
+            throw ValueError(format("sigaddset: {}", strerror(errno)));
     }
     return out;
 }
@@ -25,14 +25,14 @@ std::jthread launch_worker(std::span<const Signal> mask,
     auto set = build_sigset(mask);
     int res = pthread_sigmask(SIG_BLOCK, &set, nullptr);
     if (res)
-        throw ValueError(std::format("pthread_sigmask: {}", strerror(errno)));
+        throw ValueError(format("pthread_sigmask: {}", strerror(errno)));
     return std::jthread([set, on_sig = std::move(on_sig)]() {
         while (true) {
             int sig{};
             PLAI_TRACE("listening for signals");
             int res = sigwait(&set, &sig);
             if (res)
-                throw ValueError(std::format("sigwait: {}", strerror(errno)));
+                throw ValueError(format("sigwait: {}", strerror(errno)));
             PLAI_TRACE("Received signal {}", sig);
             if (on_sig()) {
                 PLAI_TRACE("Terminating signal listener");

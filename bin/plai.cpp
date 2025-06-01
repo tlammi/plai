@@ -19,7 +19,7 @@ plai::media::Media read_media(plai::Store& store,
                               const plai::net::MediaListEntry& entry) {
     const auto& [type, key] = entry;
     auto full_key =
-        std::format("{}/{}", plai::net::serialize_media_type(type), key);
+        plai::format("{}/{}", plai::net::serialize_media_type(type), key);
     return mk_media(type, store.read(full_key));
 }
 

@@ -89,7 +89,7 @@ Cli parse_cli(int argc, char** argv) {
                       "Default: ':memory:'.");
     parser.add_option(
         "-s,--socket", out.socket,
-        std::format("Path to API unix socket. Default '{}'", out.socket));
+        plai::format("Path to API unix socket. Default '{}'", out.socket));
     parser.add_option(
         "-w,--watermark", out.watermark,
         "Place a watermark to the player. Empty string to disable.");
@@ -108,11 +108,11 @@ Cli parse_cli(int argc, char** argv) {
 
     parser.add_option(
         "-b,--blend", blend,
-        std::format("Media blend duration in seconds. Default: {}", blend));
+        plai::format("Media blend duration in seconds. Default: {}", blend));
     parser.add_option(
         "--img-dur", img_dur,
-        std::format("Duration to show images in seconds. Default: {}",
-                    img_dur));
+        plai::format("Duration to show images in seconds. Default: {}",
+                     img_dur));
     parser.add_flag("--fullscreen,!--no-fullscreen", out.fullscreen,
                     "Start with fullscreen enabled");
     parser.add_flag("--void", out.void_frontend,

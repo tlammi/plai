@@ -12,7 +12,7 @@ namespace plai {
 
 template <class... Ts>
 std::string format(std::format_string<Ts...> fmt, Ts&&... ts) {
-    return std::format(fmt, std::forward<Ts>(ts)...);
+    return format(fmt, std::forward<Ts>(ts)...);
 }
 
 template <class... Ts>
@@ -28,6 +28,7 @@ void println(std::FILE* stream, std::format_string<Ts...> fmt, Ts&&... ts) {
 }  // namespace plai
 #else
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 
 namespace plai {
