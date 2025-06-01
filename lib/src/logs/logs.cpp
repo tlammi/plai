@@ -77,6 +77,10 @@ void push_log(Level lvl, SystemTimePoint stp, TimePoint tp, std::string msg) {
     plai::println(logs_detail::g_log_stream.get(), "{:%F %T} [{}] {}",
                   std::chrono::floor<std::chrono::milliseconds>(stp), lvl_name,
                   msg);
+    auto* fd = logs_detail::g_log_stream.get();
+    // flushing is potentially very slow so only flush when wrinting to a file
+    if (fd != stdout && fd != stderr)
+        std::fflush(logs_detail::g_log_stream.get());
 }
 
 Level level() noexcept { return logs_detail::g_level; }
