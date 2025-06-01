@@ -204,9 +204,11 @@ class Server::Impl {
         }
         if (ec) throw boost::system::system_error(ec);
         auto defer = Defer{[&] {
-            m_acceptor.async_accept(m_ioc, [&](const auto& ec, auto sock) {
-                step(ec, std::move(sock));
-            });
+            m_acceptor.async_accept(
+                m_ioc,
+                [&](const auto& ec, local::stream_protocol::socket sock) {
+                    step(ec, std::move(sock));
+                });
         }};
         auto ctx = ParsingCtx(
             beast::basic_stream<local::stream_protocol>(std::move(sock)));
