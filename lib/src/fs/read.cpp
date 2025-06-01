@@ -11,7 +11,7 @@ std::vector<uint8_t> read_bin(const stdfs::path& path) {
     // NOLINTNEXTLINE
     FILE* f = fopen(path.native().c_str(), "r");
     if (!f) {
-        throw ValueError(format("could not open {}", path.native()));
+        throw ValueError(plai::format("could not open {}", path.native()));
     }
     // NOLINTNEXTLINE
     auto defer = Defer([&] { fclose(f); });
@@ -21,7 +21,6 @@ std::vector<uint8_t> read_bin(const stdfs::path& path) {
     auto vec = std::vector<uint8_t>(size);
     auto read_bytes = fread(vec.data(), sizeof(uint8_t), vec.size(), f);
     assert(read_bytes == vec.size());
-    println("read {} bytes", read_bytes);
     return vec;
 }
 }  // namespace plai::fs

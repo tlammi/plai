@@ -8,8 +8,8 @@
 namespace plai::net {
 namespace {
 std::string to_str(const MediaListEntry& v) {
-    return format(R"({{"type": "{}", "key": "{}"}})",
-                  serialize_media_type(v.type), v.key);
+    return plai::format(R"({{"type": "{}", "key": "{}"}})",
+                        serialize_media_type(v.type), v.key);
 }
 std::string to_str(const std::vector<MediaListEntry>& v) {
     std::string res = {"["};
@@ -52,7 +52,7 @@ class ServerImpl final : public ApiServer {
 };
 
 MediaMeta DefaultApi::get_media(MediaType type, std::string_view key) {
-    auto s = format("{}/{}", plai::net::serialize_media_type(type), key);
+    auto s = plai::format("{}/{}", plai::net::serialize_media_type(type), key);
     auto res = m_store->inspect(s);
     return {
         .size = res->bytes,
@@ -69,13 +69,13 @@ void DefaultApi::put_media(
         if (!r) break;
         buf.insert(buf.end(), r->begin(), r->end());
     }
-    auto s = format("{}/{}", plai::net::serialize_media_type(type), key);
+    auto s = plai::format("{}/{}", plai::net::serialize_media_type(type), key);
     PLAI_INFO("media {} with size {}", s, buf.size());
     m_store->store(s, buf);
 }
 
 DeleteResult DefaultApi::delete_media(MediaType type, std::string_view key) {
-    auto s = format("{}/{}", plai::net::serialize_media_type(type), key);
+    auto s = plai::format("{}/{}", plai::net::serialize_media_type(type), key);
     PLAI_INFO("deleting media {}", s);
     // TODO: cannot get info whether was deleted. Do something
     m_store->remove(s);
@@ -125,7 +125,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                     auto name = req.target().path_params().at("name");
                     if (req.method() == http::METHOD_GET) {
                         auto meta = api->get_media(*type, name);
-                        return {.body = format(
+                        return {.body = plai::format(
                                     R"({{"digest":"sha256:{}","size":{}}})",
                                     crypto::hex_str(meta.digest), meta.size)};
                     }

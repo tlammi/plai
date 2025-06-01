@@ -14,4 +14,4 @@ podman run -e XDG_RUNTIME_DIR=/run/xdg \
   --group-add=keep-groups \
   --workdir=/mnt \
   --privileged \
-  "plai-$1" sh
+  "plai-$1"

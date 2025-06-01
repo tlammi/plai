@@ -83,6 +83,6 @@ constexpr FrontendType frontend_type(std::string_view s) {
     using namespace std::literals::string_view_literals;
     if (r::equal(lower, "sdl2"sv)) return Sdl2;
     if (r::equal(lower, "void"sv)) return Void;
-    throw ValueError(format("unknown frontend: {}", s));
+    throw ValueError(plai::format("unknown frontend: {}", s));
 }
 }  // namespace plai
