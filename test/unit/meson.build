@@ -13,6 +13,7 @@ TESTS = files(
   'crypto.cpp',
   'store.cpp',
   'vec.cpp',
+  'inplace.cpp',
 )
 
 subdir('net')
