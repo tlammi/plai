@@ -41,18 +41,5 @@ class Sink {
      * The argument may be null to indicate that there is no subscriber.
      * */
     virtual void on_sink_ready(SinkSubscriber* sub) = 0;
-
-    /**
-     * \brief Specify executor to use to invoke the interface
-     *
-     * If this returns an object that is contextually converted to true the
-     * object is used to call the methods in this interface. If the object has
-     * value of false the methods may be called from any executor or outside of
-     * any executor.
-     *
-     * Switching the returned object is undefined behavior. This may be called
-     * once or multiple times by the consumer.
-     * */
-    virtual sched::Executor executor() { return {}; }
 };
 }  // namespace plai::flow

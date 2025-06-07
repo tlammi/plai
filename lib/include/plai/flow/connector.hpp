@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mutex>
 #include <plai/flow/sink.hpp>
 #include <plai/flow/src.hpp>
 #include <utility>
@@ -43,30 +42,22 @@ class Connector final : SrcSubscriber, SinkSubscriber {
                 do_consume(m_src->produce());
         });
     }
-    void do_consume(I val) const {
-        if (m_sink_exec)
-            sched::post(m_sink_exec, [&, v = std::move(val)]() mutable {
-                m_sink->consume(std::move(v));
-            });
-        else
-            m_sink->consume(std::move(val));
-    }
 
     void src_data_available() override {
         sched::post(m_exec, [&] {
             if (!m_sink->ready()) return;
-            do_consume(m_src->produce());
+            m_sink->consume(m_src->produce());
         });
     }
+
     void sink_ready() override {
         sched::post(m_exec, [&] {
             if (!m_src->data_available()) return;
-            do_consume(m_src->produce());
+            m_sink->consume / (m_src->produce());
         });
     }
 
     sched::Executor m_exec{};
-    sched::Executor m_sink_exec{};
     Src<I>* m_src;
     Sink<O>* m_sink;
 };
