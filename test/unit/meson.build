@@ -17,6 +17,8 @@ TESTS = files(
 )
 
 subdir('net')
+subdir('sched')
+subdir('flow')
 
 fs = import('fs')
 
