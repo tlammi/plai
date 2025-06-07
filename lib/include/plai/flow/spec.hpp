@@ -2,28 +2,12 @@
 
 #include <memory>
 #include <plai/flow/connector.hpp>
+#include <plai/flow/pipeline.hpp>
 #include <plai/flow/sink.hpp>
 #include <plai/flow/src.hpp>
 
 namespace plai::flow {
-
-class Pipeline {
- public:
-    virtual ~Pipeline() = default;
-
- private:
-};
-
-template <class... Connectors>
-class PipelineImpl final : public Pipeline {
- public:
-    explicit PipelineImpl(std::tuple<Connectors...> connectors) noexcept
-        : m_connectors(std::move(connectors)) {}
-
- private:
-    std::tuple<Connectors...> m_connectors{};
-};
-
+namespace detail {
 struct PipelineFinish {};
 
 template <class T, class... Connectors>
@@ -61,7 +45,7 @@ class SpecBuilder<void, Connectors...> {
         : m_connectors(std::move(connectors)) {}
 
     std::unique_ptr<Pipeline> operator|(PipelineFinish) && {
-        return std::make_unique<PipelineImpl<Connectors...>>(
+        return std::make_unique<detail::PipelineImpl<Connectors...>>(
             std::move(m_connectors));
     }
 
@@ -79,9 +63,10 @@ struct PipelineStart {
         return SpecBuilder(src);
     }
 };
+}  // namespace detail
 
-constexpr PipelineStart pipeline_start() noexcept { return {}; }
+constexpr detail::PipelineStart pipeline_start() noexcept { return {}; }
 
-constexpr PipelineFinish pipeline_finish() noexcept { return {}; }
+constexpr detail::PipelineFinish pipeline_finish() noexcept { return {}; }
 
 }  // namespace plai::flow
