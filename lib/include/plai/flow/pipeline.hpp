@@ -7,8 +7,6 @@ namespace plai::flow {
 class Pipeline {
  public:
     virtual ~Pipeline() = default;
-
- private:
 };
 
 namespace detail {

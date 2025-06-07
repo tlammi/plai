@@ -3,9 +3,11 @@
 #include <plai/flow/spec.hpp>
 
 namespace flow = plai::flow;
+namespace sched = plai::sched;
 
 TEST(Construct, Null) {
-    auto spec = flow::pipeline_start() | flow::pipeline_finish();
+    auto ctx = sched::IoContext();
+    auto spec = flow::pipeline(ctx) | flow::pipeline_finish();
     (void)spec;
 }
 
@@ -41,8 +43,9 @@ class DummySink final : public flow::Sink<T> {
 TEST(Construct, SrcSink) {
     auto src = DummySrc<int>();
     auto sink = DummySink<int>();
+    auto ctx = sched::IoContext();
 
-    auto spec = flow::pipeline_start() | src | sink | flow::pipeline_finish();
+    auto spec = flow::pipeline(ctx) | src | sink | flow::pipeline_finish();
     (void)spec;
 }
 
@@ -70,7 +73,8 @@ TEST(Construct, SrcProxySink) {
     auto src = DummySrc<int>();
     auto proxy = Proxy<int, float>([](int i) { return float(i); });
     auto sink = DummySink<float>();
+    auto ctx = sched::IoContext();
 
     auto pipeline =
-        flow::pipeline_start() | src | proxy | sink | flow::pipeline_finish();
+        flow::pipeline(ctx) | src | proxy | sink | flow::pipeline_finish();
 }
