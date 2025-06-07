@@ -30,7 +30,7 @@ template <class T>
 class DummySink final : public flow::Sink<T> {
  public:
     std::vector<T> produced{};
-    flow::SinkSubscriber* subscriber;
+    flow::SinkSubscriber* subscriber{};
     void consume(T val) override { produced.push_back(std::move(val)); }
 
     bool ready() override { return true; }
