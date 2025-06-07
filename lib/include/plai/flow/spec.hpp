@@ -30,14 +30,23 @@ template <class T, class... Connectors>
 class SpecBuilder {
  public:
     explicit constexpr SpecBuilder(Src<T>& src) noexcept : m_src(&src) {}
+    explicit constexpr SpecBuilder(
+        Src<T>& src, std::tuple<Connectors...> connectors) noexcept
+        : m_src(&src), m_connectors(std::move(connectors)) {}
 
-    auto operator|(Sink<T>& sink) && {
+    template <std::derived_from<Sink<T>> Snk>
+    auto operator|(Snk& sink) && {
         using NewConnector = Connector<T, T>;
         auto new_connectors =
             std::tuple_cat(std::move(m_connectors),
                            std::make_tuple(NewConnector(*m_src, sink)));
-        return SpecBuilder<void, Connectors..., NewConnector>(
-            std::move(new_connectors));
+        if constexpr (src_type<std::remove_cvref_t<Snk>>) {
+            return SpecBuilder<typename Snk::produced_type, Connectors...,
+                               NewConnector>(sink, std::move(new_connectors));
+        } else {
+            return SpecBuilder<void, Connectors..., NewConnector>(
+                std::move(new_connectors));
+        }
     }
 
  private:

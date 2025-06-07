@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mutex>
-#include <plai/flow/concepts.hpp>
 #include <plai/flow/sink.hpp>
 #include <plai/flow/src.hpp>
 #include <utility>

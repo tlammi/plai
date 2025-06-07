@@ -46,6 +46,35 @@ TEST(Construct, SrcSink) {
     (void)spec;
 }
 
+template <class T, class U>
+class Proxy final : public flow::Sink<T>, public flow::Src<U> {
+ public:
+    explicit Proxy(std::function<U(T)> converter) : m_conv(converter) {}
+
+    U produce() override { return *std::exchange(m_buf, std::nullopt); }
+    bool data_available() override { return m_buf.has_value(); }
+
+    void on_data_available(flow::SrcSubscriber* sub) override {}
+
+    void consume(T val) override { m_buf.emplace(m_conv(std::move(val))); }
+    bool ready() override { return !m_buf.has_value(); }
+
+    void on_sink_ready(flow::SinkSubscriber* sub) override {}
+
+ private:
+    std::function<U(T)> m_conv;
+    std::optional<U> m_buf{};
+};
+
+TEST(Construct, SrcProxySink) {
+    auto src = DummySrc<int>();
+    auto proxy = Proxy<int, float>([](int i) { return float(i); });
+    auto sink = DummySink<float>();
+
+    auto pipeline =
+        flow::pipeline_start() | src | proxy | sink | flow::pipeline_finish();
+}
+
 TEST(Produce, Simple) {
     auto src = DummySrc<int>();
     auto sink = DummySink<int>();
