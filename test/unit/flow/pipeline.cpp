@@ -16,7 +16,7 @@ struct Producer final : public flow::Src<T> {
 
     void push(T t) {
         buf.emplace(std::move(t));
-        sub->src_data_available();
+        if (sub) sub->src_data_available();
     }
 
     std::optional<T> buf{};
@@ -38,11 +38,32 @@ struct Consumer final : public flow::Sink<T> {
     flow::SinkSubscriber* sub{};
 };
 
-TEST(Pipeline, BootstrapNop) {
-    auto p = Producer<int>();
-    auto c = Consumer<int>();
-    auto ctx = sched::IoContext();
-    auto pline = flow::pipeline(ctx) | p | c | flow::pipeline_finish();
+class Pipeline : public ::testing::Test {
+ public:
+    Producer<int> int_src{};
+    Consumer<int> int_sink{};
+    sched::IoContext ctx{};
+};
+
+TEST_F(Pipeline, BootstrapNop) {
+    auto pline =
+        flow::pipeline(ctx) | int_src | int_sink | flow::pipeline_finish();
     ctx.run();
-    ASSERT_FALSE(c.buf);
+    ASSERT_FALSE(int_sink.buf);
+}
+
+TEST_F(Pipeline, BoostrapOp) {
+    int_src.buf = 1;
+    auto pline =
+        flow::pipeline(ctx) | int_src | int_sink | flow::pipeline_finish();
+    ctx.run();
+    ASSERT_EQ(int_sink.buf, 1);
+}
+
+TEST_F(Pipeline, Produce) {
+    auto pline =
+        flow::pipeline(ctx) | int_src | int_sink | flow::pipeline_finish();
+    sched::post(ctx, [&] { int_src.push(2); });
+    ctx.run();
+    ASSERT_EQ(int_sink.buf, 2);
 }
