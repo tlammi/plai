@@ -10,21 +10,15 @@ template <class I, class O>
 class Connector final : SrcSubscriber, SinkSubscriber {
  public:
     Connector(sched::Executor exec, Src<I>& src, Sink<O>& sink) noexcept
-        : m_exec(std::move(exec)), m_src(&src), m_sink(&sink) {
-        bootstrap();
-    }
+        : m_exec(std::move(exec)), m_src(&src), m_sink(&sink) {}
 
     Connector(const Connector&) = delete;
     Connector& operator=(const Connector&) = delete;
 
     Connector(Connector&& other) noexcept
-        : m_src(std::exchange(other.m_src, nullptr)),
-          m_sink(std::exchange(other.m_sink, nullptr)) {
-        if (m_src) {
-            m_src->on_data_available(this);
-            m_sink->on_sink_ready(this);
-        }
-    }
+        : m_exec(std::move(other.m_exec)),
+          m_src(std::exchange(other.m_src, nullptr)),
+          m_sink(std::exchange(other.m_sink, nullptr)) {}
 
     Connector& operator=(Connector&&) = delete;
 
@@ -34,15 +28,16 @@ class Connector final : SrcSubscriber, SinkSubscriber {
             m_sink->on_sink_ready(nullptr);
         }
     }
-
- private:
-    void bootstrap() const {
+    void bootstrap() {
+        m_src->on_data_available(this);
+        m_sink->on_sink_ready(this);
         sched::post(m_exec, [&] {
             if (m_src->data_available() && m_sink->ready())
-                do_consume(m_src->produce());
+                m_sink->consume(m_src->produce());
         });
     }
 
+ private:
     void src_data_available() override {
         sched::post(m_exec, [&] {
             if (!m_sink->ready()) return;
@@ -53,7 +48,7 @@ class Connector final : SrcSubscriber, SinkSubscriber {
     void sink_ready() override {
         sched::post(m_exec, [&] {
             if (!m_src->data_available()) return;
-            m_sink->consume / (m_src->produce());
+            m_sink->consume(m_src->produce());
         });
     }
 

@@ -52,8 +52,10 @@ class SpecBuilder<void, Connectors...> {
         : m_connectors(std::move(connectors)) {}
 
     std::unique_ptr<Pipeline> operator|(PipelineFinish) && {
-        return std::make_unique<detail::PipelineImpl<Connectors...>>(
+        auto ptr = std::make_unique<detail::PipelineImpl<Connectors...>>(
             std::move(m_connectors));
+        ptr->bootstrap();
+        return ptr;
     }
 
  private:

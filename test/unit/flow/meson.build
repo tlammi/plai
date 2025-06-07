@@ -1,1 +1,1 @@
-TESTS += files('pipeline_spec.cpp')
+TESTS += files('pipeline_spec.cpp', 'pipeline.cpp')
