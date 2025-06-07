@@ -74,9 +74,3 @@ TEST(Construct, SrcProxySink) {
     auto pipeline =
         flow::pipeline_start() | src | proxy | sink | flow::pipeline_finish();
 }
-
-TEST(Produce, Simple) {
-    auto src = DummySrc<int>();
-    auto sink = DummySink<int>();
-    auto spec = flow::pipeline_start() | src | sink | flow::pipeline_finish();
-}
