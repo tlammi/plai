@@ -11,7 +11,9 @@ template <class I, class O>
 class Connector final : SrcSubscriber, SinkSubscriber {
  public:
     Connector(sched::Executor exec, Src<I>& src, Sink<O>& sink) noexcept
-        : m_exec(std::move(exec)), m_src(&src), m_sink(&sink) {}
+        : m_exec(std::move(exec)), m_src(&src), m_sink(&sink) {
+        bootstrap();
+    }
 
     Connector(const Connector&) = delete;
     Connector& operator=(const Connector&) = delete;
@@ -34,15 +36,14 @@ class Connector final : SrcSubscriber, SinkSubscriber {
         }
     }
 
-    void step() const {
+ private:
+    void bootstrap() const {
         sched::post(m_exec, [&] {
             if (m_src->data_available() && m_sink->ready())
                 do_consume(m_src->produce());
         });
     }
-
- private:
-    void do_consume(I val) {
+    void do_consume(I val) const {
         if (m_sink_exec)
             sched::post(m_sink_exec, [&, v = std::move(val)]() mutable {
                 m_sink->consume(std::move(v));

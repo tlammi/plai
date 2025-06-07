@@ -14,20 +14,25 @@ template <class T, class... Connectors>
 class SpecBuilder {
  public:
     explicit constexpr SpecBuilder(sched::Executor exec, Src<T>& src) noexcept
-        : m_exec(exec), m_src(&src) {}
+        : m_exec(std::move(exec)), m_src(&src) {}
     explicit constexpr SpecBuilder(
-        Src<T>& src, std::tuple<Connectors...> connectors) noexcept
-        : m_src(&src), m_connectors(std::move(connectors)) {}
+        sched::Executor exec, Src<T>& src,
+        std::tuple<Connectors...> connectors) noexcept
+        : m_exec(std::move(exec)),
+          m_src(&src),
+          m_connectors(std::move(connectors)) {}
 
     template <std::derived_from<Sink<T>> Snk>
     auto operator|(Snk& sink) && {
         using NewConnector = Connector<T, T>;
-        auto new_connectors = std::tuple_cat(
-            std::move(m_connectors),
-            std::make_tuple(NewConnector(std::move(m_exec), *m_src, sink)));
+        assert(m_exec);
+        auto new_connectors =
+            std::tuple_cat(std::move(m_connectors),
+                           std::make_tuple(NewConnector(m_exec, *m_src, sink)));
         if constexpr (src_type<std::remove_cvref_t<Snk>>) {
             return SpecBuilder<typename Snk::produced_type, Connectors...,
-                               NewConnector>(sink, std::move(new_connectors));
+                               NewConnector>(m_exec, sink,
+                                             std::move(new_connectors));
         } else {
             return SpecBuilder<void, Connectors..., NewConnector>(
                 std::move(new_connectors));
@@ -63,6 +68,7 @@ struct PipelineStart {
 
     template <class T>
     constexpr auto operator|(Src<T>& src) && {
+        assert(exec);
         return SpecBuilder(std::move(exec), src);
     }
 };
