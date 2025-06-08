@@ -49,3 +49,17 @@ TEST(Step, One) {
     ASSERT_TRUE(st.done());
     ASSERT_EQ(counter, 1);
 }
+TEST(Step, Many) {
+    size_t counter = 0;
+    auto task = sched::task() | [&] { return counter + 1; } |
+                [](size_t s) { return s * 2; } |
+                [&](size_t s) { counter = s; } | sched::task_finish();
+    auto st = task.launch();
+    size_t iterations = 0;
+    while (!st.done()) {
+        ++iterations;
+        st();
+    }
+    ASSERT_EQ(counter, 2);
+    ASSERT_EQ(iterations, 3);
+}
