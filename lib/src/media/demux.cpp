@@ -113,7 +113,6 @@ int Demux::buffer_read(void* userdata, uint8_t* buf, int buflen) noexcept {
         return AVERROR_EOF;
     }
     auto count = std::min(buflen, static_cast<int>(left_in_buf));
-    auto spn = self->m_buf.subspan(self->m_buf_offset, count);
     std::memcpy(buf, &self->m_buf[self->m_buf_offset], count);
     self->m_buf_offset += count;
     PLAI_TRACE("read {} bytes", count);
