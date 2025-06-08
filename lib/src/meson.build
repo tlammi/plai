@@ -5,6 +5,7 @@ subdir('fs')
 subdir('play')
 subdir('net')
 subdir('os')
+subdir('mods')
 
 SRCS += files(
   'prof.cpp',

@@ -36,6 +36,7 @@ concept frac = std::same_as<T, Frac<U>>;
 template <class T>
 class Frac {
  public:
+    constexpr Frac() noexcept = default;
     constexpr Frac(T num, T den) noexcept
         : m_num(std::move(num)), m_den(std::move(den)) {}
 
@@ -75,6 +76,9 @@ class Frac {
     T m_num{};
     T m_den{1};
 };
+
+template <class T>
+constexpr auto NaN = Frac<T>(0, 0);
 
 template <class T>
 constexpr Frac<T> operator*(const T& scalar, const Frac<T>& frac) noexcept {
