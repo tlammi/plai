@@ -60,7 +60,12 @@ class Task<R(Ps...)> {
         virtual size_t step_count() const noexcept = 0;
 
      private:
-        virtual void run_step(size_t idx) = 0;
+        /**
+         * Run The step with the given index
+         *
+         * Returns true if the step does not need repeat and false if it does.
+         * */
+        virtual bool run_step(size_t idx) = 0;
     };
 
  public:
@@ -82,8 +87,8 @@ class TaskState<void> {
     bool done() const noexcept { return m_idx == m_count; }
 
     void step() {
-        m_impl->run_step(m_idx);
-        ++m_idx;
+        bool inc = m_impl->run_step(m_idx);
+        if (inc) ++m_idx;
     }
 
     void operator()() { step(); }
@@ -122,8 +127,9 @@ class TaskImpl final : public Task<void()>::Impl {
     TaskState<void> launch() override { return TaskState<void>{*this}; }
 
  private:
-    void run_step(size_t idx) override {
+    bool run_step(size_t idx) override {
         get_nth<detail::AnyStep>(m_steps, idx)();
+        return true;
     }
     Buffer m_buf{};
     Tuple m_steps{};
