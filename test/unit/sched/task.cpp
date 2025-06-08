@@ -28,7 +28,7 @@ TEST(Create, ChainVal) {
 TEST(Run, One) {
     size_t counter = 0;
     auto task = sched::task() | [&] { ++counter; } | sched::task_finish();
-    task.run();
+    task.launch().run();
     ASSERT_EQ(counter, 1);
 }
 
@@ -36,7 +36,7 @@ TEST(Run, MultipleVoid) {
     size_t counter = 0;
     auto task = sched::task() | [&] { ++counter; } | [&] { counter *= 2; } |
                 sched::task_finish();
-    task.run();
+    task.launch().run();
     ASSERT_EQ(counter, 2);
 }
 
@@ -49,6 +49,7 @@ TEST(Step, One) {
     ASSERT_TRUE(st.done());
     ASSERT_EQ(counter, 1);
 }
+
 TEST(Step, Many) {
     size_t counter = 0;
     auto task = sched::task() | [&] { return counter + 1; } |

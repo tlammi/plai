@@ -51,19 +51,27 @@ class Task<R(Ps...)> {
     template <class...>
     friend class TaskImpl;
     friend class TaskState<R>;
-
- public:
- private:
-    class Impl : public Virtual {
+    class Impl {
         friend class TaskState<R>;
 
      public:
+        virtual ~Impl() = default;
         virtual TaskState<R> launch(Ps... ps) = 0;
         virtual size_t step_count() const noexcept = 0;
 
      private:
         virtual void run_step(size_t idx) = 0;
     };
+
+ public:
+    explicit Task(std::unique_ptr<Impl> impl) : m_impl(std::move(impl)) {}
+
+    auto launch(Ps... ps) { return m_impl->launch(); }
+
+    auto step_count() const noexcept { return m_impl->step_count(); }
+
+ private:
+    std::unique_ptr<Impl> m_impl{};
 };
 
 template <>
@@ -80,6 +88,10 @@ class TaskState<void> {
 
     void operator()() { step(); }
 
+    void run() {
+        while (!done()) step();
+    }
+
  private:
     Task<void()>::Impl* m_impl;
     size_t m_idx{};
@@ -94,11 +106,18 @@ class TaskImpl final : public Task<void()>::Impl {
  public:
     explicit TaskImpl(Args steps) noexcept
         : m_steps(detail::wrap_steps(m_buf, std::move(steps))) {}
+
+    TaskImpl(const TaskImpl&) = delete;
+    TaskImpl& operator=(const TaskImpl&) = delete;
+
+    TaskImpl(TaskImpl&&) = delete;
+    TaskImpl& operator=(TaskImpl&&) = delete;
+
+    ~TaskImpl() override = default;
+
     constexpr size_t step_count() const noexcept override {
         return std::tuple_size_v<Tuple>;
     }
-
-    void run() { detail::foreach_tuple<0>(m_steps); }
 
     TaskState<void> launch() override { return TaskState<void>{*this}; }
 
@@ -109,6 +128,14 @@ class TaskImpl final : public Task<void()>::Impl {
     Buffer m_buf{};
     Tuple m_steps{};
 };
+
+namespace detail {
+template <class Type, class... Ps>
+Task<void()> make_task(Ps&&... ps) {
+    return Task<void()>(
+        std::unique_ptr<Type>(new Type(std::forward<Ps>(ps)...)));
+}
+}  // namespace detail
 
 struct TaskFinish {};
 constexpr auto task_finish() { return TaskFinish{}; }
@@ -139,13 +166,15 @@ struct TaskBuilder {
     }
 
     auto operator|(TaskFinish) && {
-        return TaskImpl<Steps..., Fn>{std::tuple_cat(
-            std::move(preceding), std::make_tuple(std::move(last)))};
+        return detail::make_task<TaskImpl<Steps..., Fn>>(std::tuple_cat(
+            std::move(preceding), std::make_tuple(std::move(last))));
     }
 };
 
 struct TaskStart {
-    auto operator|(TaskFinish) && { return TaskImpl<>{{}}; }
+    auto operator|(TaskFinish) && {
+        return detail::make_task<TaskImpl<>>(std::tuple<>());
+    }
 
     template <std::invocable Fn>
     auto operator|(Fn&& fn) && {
