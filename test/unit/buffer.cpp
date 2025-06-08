@@ -19,3 +19,11 @@ TEST(Mutate, IntToInt) {
     b.mutate([](int i) { return i + 1; });
     ASSERT_EQ(*b.get<int>(), 2);
 }
+
+TEST(Mutate, Clear) {
+    auto b = plai::make_buffer<int>(2);
+    int res = 0;
+    b.mutate([&](int i) { res = i; });
+    ASSERT_EQ(res, 2);
+    ASSERT_FALSE(b);
+}

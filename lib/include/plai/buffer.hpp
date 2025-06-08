@@ -77,13 +77,19 @@ class Buffer {
         static_assert(pack_size_v<Args> == 1);
         using Arg = first_pack_type_t<Args>;
         using Res = invoke_result_t<std::remove_cvref_t<Fn>>;
-        emplace(std::in_place_type<Res>,
-                std::forward<Fn>(fn)(std::move(*get<Arg>())));
+        if constexpr (std::same_as<Res, void>) {
+            fn(std::move(*get<Arg>()));
+            reset();
+        } else {
+            emplace(std::in_place_type<Res>,
+                    std::forward<Fn>(fn)(std::move(*get<Arg>())));
+        }
     }
 
     template <class T>
     T* get() noexcept {
         assert(m_tindex == boost::typeindex::type_id<T>());
+        assert(m_dtor);
         // NOLINTNEXTLINE
         return reinterpret_cast<T*>(m_buf.data());
     }
@@ -91,9 +97,18 @@ class Buffer {
     template <class T>
     const T* get() const noexcept {
         assert(m_tindex == boost::typeindex::type_id<T>());
+        assert(m_dtor);
         // NOLINTNEXTLINE
         return reinterpret_cast<T*>(m_buf.data());
     }
+
+    void reset() {
+        if (m_dtor) m_dtor(m_buf.data());
+        m_dtor = nullptr;
+    }
+
+    bool has_value() { return m_dtor != nullptr; }
+    explicit operator bool() { return m_dtor != nullptr; }
 
  private:
     std::vector<uint8_t> m_buf{};
