@@ -1,6 +1,7 @@
 #pragma once
 #include <boost/type_index.hpp>
 #include <memory>
+#include <plai/type_traits.hpp>
 #include <plai/util/algorithm.hpp>
 #include <vector>
 
@@ -64,6 +65,22 @@ class Buffer {
 #endif
     }
 
+    /**
+     * \brief Mutate the contents
+     *
+     * Pass the stored object to a callable and store the returned value in its
+     * place.
+     * */
+    template <class Fn>
+    void mutate(Fn&& fn) {
+        using Args = invoke_params_t<std::remove_cvref_t<Fn>>;
+        static_assert(pack_size_v<Args> == 1);
+        using Arg = first_pack_type_t<Args>;
+        using Res = invoke_result_t<std::remove_cvref_t<Fn>>;
+        emplace(std::in_place_type<Res>,
+                std::forward<Fn>(fn)(std::move(*get<Arg>())));
+    }
+
     template <class T>
     T* get() noexcept {
         assert(m_tindex == boost::typeindex::type_id<T>());
@@ -86,4 +103,8 @@ class Buffer {
 #endif
 };
 
+template <class T, class... Ts>
+Buffer make_buffer(Ts&&... ts) {
+    return Buffer(std::in_place_type<T>, std::forward<Ts>(ts)...);
+}
 }  // namespace plai
