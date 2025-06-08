@@ -74,15 +74,26 @@ class Buffer {
     template <class Fn>
     void mutate(Fn&& fn) {
         using Args = invoke_params_t<std::remove_cvref_t<Fn>>;
-        static_assert(pack_size_v<Args> == 1);
-        using Arg = first_pack_type_t<Args>;
+        constexpr auto param_count = pack_size_v<Args>;
+        static_assert(param_count <= 1);
         using Res = invoke_result_t<std::remove_cvref_t<Fn>>;
         if constexpr (std::same_as<Res, void>) {
-            fn(std::move(*get<Arg>()));
-            reset();
+            if constexpr (param_count == 1) {
+                using Arg = first_pack_type_t<Args>;
+                std::forward<Fn>(fn)(std::move(*get<Arg>()));
+                reset();
+            } else {
+                std::forward<Fn>(fn)();
+                reset();
+            }
         } else {
-            emplace(std::in_place_type<Res>,
-                    std::forward<Fn>(fn)(std::move(*get<Arg>())));
+            if constexpr (param_count == 1) {
+                using Arg = first_pack_type_t<Args>;
+                emplace(std::in_place_type<Res>,
+                        std::forward<Fn>(fn)(std::move(*get<Arg>())));
+            } else {
+                emplace(std::in_place_type<Res>, std::forward<Fn>(fn)());
+            }
         }
     }
 
