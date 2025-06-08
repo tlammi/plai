@@ -14,6 +14,7 @@ TESTS = files(
   'store.cpp',
   'vec.cpp',
   'inplace.cpp',
+  'buffer.cpp',
 )
 
 subdir('net')
