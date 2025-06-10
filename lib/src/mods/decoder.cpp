@@ -77,7 +77,7 @@ class DecoderImpl final : public Decoder {
             m_media.reset();
         }
         notify_src_ready();
-        notify_src_ready();
+        notify_sink_ready();
     }
 
     void decode_step() {
