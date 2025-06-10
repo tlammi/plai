@@ -1,1 +1,2 @@
-SRCS += files('decoder.cpp')
+SRCS += files('decoder.cpp', 'player.cpp')
+

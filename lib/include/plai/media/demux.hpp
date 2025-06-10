@@ -33,6 +33,7 @@ class Demux {
     Demux(const Demux&) = delete;
     Demux& operator=(const Demux&) = delete;
 
+    // TODO: These do not work and should be deleted;
     Demux(Demux&& other) noexcept;
     Demux& operator=(Demux&& other) noexcept;
 

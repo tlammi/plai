@@ -63,10 +63,10 @@ Demux::Demux(Demux&& other) noexcept
 }
 
 Demux& Demux::operator=(Demux&& other) noexcept {
-    auto tmp = Demux(m_ctx);
-    m_buf = std::exchange(other.m_buf, {});
-    m_ctx = std::exchange(other.m_ctx, nullptr);
-    m_io_ctx = std::exchange(other.m_io_ctx, nullptr);
+    auto tmp = std::move(*this);
+    std::swap(m_buf, other.m_buf);
+    std::swap(m_ctx, other.m_ctx);
+    std::swap(m_io_ctx, other.m_io_ctx);
     if (m_io_ctx) m_io_ctx->opaque = this;
     return *this;
 }

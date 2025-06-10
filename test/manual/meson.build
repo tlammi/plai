@@ -1,5 +1,6 @@
 
 tests = files(
+  'decoder.cpp',
   'pkt_count.cpp',
   'void_decoder.cpp',
   'hwaccel_list.cpp',
@@ -9,6 +10,7 @@ tests = files(
   'watermark_player.cpp',
   'store.cpp',
   'periodic_task.cpp',
+  'new_player.cpp',
 )
 
 fs = import('fs')

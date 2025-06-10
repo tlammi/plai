@@ -16,8 +16,13 @@ class DecoderImpl final : public Decoder {
     explicit DecoderImpl(sched::Executor exec) : m_exec(std::move(exec)) {}
 
     void consume(media::Media media) override {
-        auto lk = std::lock_guard(m_mut);
-        m_media = std::move(std::get<media::Image>(std::move(media)));
+        {
+            auto lk = std::lock_guard(m_mut);
+            m_media = std::move(std::get<media::Image>(std::move(media)));
+            PLAI_DEBUG("Decoder consuming media with size {}",
+                       m_media->data.size());
+        }
+        sched::post(m_exec, memfn(this, &DecoderImpl::launch_decoding));
     }
 
     bool sink_ready() override {
@@ -31,12 +36,12 @@ class DecoderImpl final : public Decoder {
  private:
     void launch_decoding() {
         auto lk = std::unique_lock(m_mut);
-        m_demux = media::Demux(m_media->data);
+        m_demux.emplace(m_media->data);
         m_decoded_frames = 0;
         lk.unlock();
-        std::tie(m_stream_idx, m_stream) = m_demux.best_video_stream();
+        std::tie(m_stream_idx, m_stream) = m_demux->best_video_stream();
         auto still = m_stream.is_still_image();
-        m_decoder = media::Decoder(m_stream, m_accel);
+        m_decoder = media::Decoder(m_stream);
         if (still) {
             m_frame_buf.emplace(DecodingMeta{.fps = {}});
             m_still_decode.post();
@@ -56,7 +61,7 @@ class DecoderImpl final : public Decoder {
         auto pkt = media::Packet();
         auto frm = media::Frame();
         auto real_frm = media::Frame();
-        while (m_demux >> pkt) {
+        while (*m_demux >> pkt) {
             if (pkt.stream_index() != m_stream_idx) continue;
             m_decoder << pkt;
             if (!(m_decoder >> frm)) continue;
@@ -75,7 +80,7 @@ class DecoderImpl final : public Decoder {
     void decode_step() {
         auto pkt = media::Packet();
         auto frm = media::Frame();
-        while (m_demux >> pkt) {
+        while (*m_demux >> pkt) {
             if (pkt.stream_index() != m_stream_idx) continue;
             m_decoder << pkt;
             if (!(m_decoder >> frm)) continue;
@@ -93,7 +98,7 @@ class DecoderImpl final : public Decoder {
     std::mutex m_mut{};
     sched::Executor m_exec;
 
-    media::Demux m_demux{};
+    std::optional<media::Demux> m_demux{};
     unsigned long m_stream_idx{};
     media::StreamView m_stream{};
     media::Decoder m_decoder{};
