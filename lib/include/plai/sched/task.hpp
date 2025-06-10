@@ -23,6 +23,7 @@ constexpr auto task_tag = task_tag_t{};
 
 class Task {
  public:
+    constexpr Task() noexcept = default;
     Task(detail::task_tag_t, std::unique_ptr<detail::TaskImpl> impl) noexcept
         : m_impl(std::move(impl)) {}
     void post() { m_impl->post(); }
