@@ -188,13 +188,19 @@ class PlayerImpl final : public Player {
                 using enum State;
                 if (m_st == Vid && m_prev_st == Vid) {
                     m_blend_state = BlendState::Blend;
+                    m_text->blend_mode(BlendMode::Blend);
+                    m_back->blend_mode(BlendMode::Blend);
                 } else if (m_st == Img && m_prev_st == Vid) {
                     m_alpha_calc = AlphaCalc(WATERMARK_BLEND);
                     m_blend_state = BlendState::FadeInWatermarks;
                 } else if (m_st == Vid && m_prev_st == Img) {
                     m_blend_state = BlendState::Blend;
+                    m_text->blend_mode(BlendMode::Blend);
+                    m_back->blend_mode(BlendMode::Blend);
                 } else if (m_st == Img && m_prev_st == Img) {
                     m_blend_state = BlendState::Blend;
+                    m_text->blend_mode(BlendMode::Blend);
+                    m_back->blend_mode(BlendMode::Blend);
                 } else {
                     PLAI_FATAL(
                         "Invalid combination of states while preparing to "
@@ -228,6 +234,8 @@ class PlayerImpl final : public Player {
                 m_alpha_calc = AlphaCalc(WATERMARK_BLEND);
                 m_blend_state = BlendState::FadeOutWatermarks;
             } else {
+                m_text->blend_mode(BlendMode::None);
+                m_back->blend_mode(BlendMode::None);
                 m_blend_state = BlendState::None;
             }
         }
@@ -236,7 +244,11 @@ class PlayerImpl final : public Player {
     void step_blend_fade_out_watermarks() {
         auto alpha = m_alpha_calc();
         render_watermarks(MAX_ALPHA - alpha);
-        if (alpha == MAX_ALPHA) { m_blend_state = BlendState::None; }
+        if (alpha == MAX_ALPHA) {
+            m_text->blend_mode(BlendMode::None);
+            m_back->blend_mode(BlendMode::None);
+            m_blend_state = BlendState::None;
+        }
     }
 
     void step_normal() {
