@@ -137,6 +137,7 @@ class PlayerImpl final : public Player {
             [&](media::Frame frm) {
                 m_prev_frm = std::exchange(m_frm, std::move(frm));
                 m_text->update(m_frm);
+                m_text->render_to(MAIN_TARGET);
                 m_timestamp = Clock::now();
                 m_st = State::ImgDelay;
             });
@@ -145,6 +146,7 @@ class PlayerImpl final : public Player {
     void step_img_delay() {
         auto now = Clock::now();
         if (now - m_timestamp >= m_opts.image_dur) m_st = State::Img;
+        m_text->render_to(MAIN_TARGET);
     }
 
     void step_vid() {

@@ -30,7 +30,10 @@ class DecoderImpl final : public Decoder {
         return !m_media.has_value();
     }
 
-    Decoded produce() override { return m_frame_buf.pop(); }
+    Decoded produce() override {
+        PLAI_TRACE("Decoder producing a frame");
+        return m_frame_buf.pop();
+    }
     bool src_ready() override { return !m_frame_buf.empty(); }
 
  private:
@@ -43,7 +46,7 @@ class DecoderImpl final : public Decoder {
         auto still = m_stream.is_still_image();
         m_decoder = media::Decoder(m_stream);
         if (still) {
-            m_frame_buf.emplace(DecodingMeta{.fps = {}});
+            m_frame_buf.emplace(DecodingMeta{.fps = NaN<int>});
             m_still_decode.post();
         } else {
             m_frame_buf.emplace(DecodingMeta{.fps = m_stream.fps()});
