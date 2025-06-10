@@ -61,7 +61,7 @@ void init(Level lvl, const std::filesystem::path& logfile) {
     logs_detail::g_level = lvl;
     // TODO: use level
     if (lvl <= Level::Trace) {
-        av_log_set_callback(&logs_detail::ffmpeg_log_cb);
+        // av_log_set_callback(&logs_detail::ffmpeg_log_cb);
     }
     if (logfile != "-" && !logfile.empty()) {
         logs_detail::g_log_stream =
