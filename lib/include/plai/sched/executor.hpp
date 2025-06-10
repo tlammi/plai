@@ -3,6 +3,9 @@
 #include <boost/asio.hpp>
 
 namespace plai::sched {
+
+using Timer = boost::asio::steady_timer;
+
 using Executor = boost::asio::any_io_executor;
 
 template <class... Ts>

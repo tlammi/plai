@@ -8,6 +8,7 @@ tests = files(
   'rest.cpp',
   'watermark_player.cpp',
   'store.cpp',
+  'periodic_task.cpp',
 )
 
 fs = import('fs')

@@ -4,6 +4,7 @@
 #include <plai/sched/task.hpp>
 
 namespace sched = plai::sched;
+using namespace std::literals;
 
 TEST(Create, Null) {
     auto ctx = sched::IoContext();
@@ -73,4 +74,20 @@ TEST(Step, Many) {
     while (ctx.poll_one()) { ++iterations; }
     ASSERT_EQ(counter, 2);
     ASSERT_EQ(iterations, 3);
+}
+
+TEST(PeriodicTask, Create) {
+    auto ctx = sched::IoContext();
+    auto task = sched::task() | sched::executor(ctx) | sched::period(10ms) |
+                [] {} | sched::task_finish();
+    ASSERT_EQ(task.step_count(), 1);
+}
+
+TEST(PeriodicTask, Run) {
+    auto ctx = sched::IoContext();
+    size_t counter = 0;
+    static constexpr auto count = 100;
+    auto task = sched::task() | sched::executor(ctx) | sched::period(1ms) |
+                [&] { ++counter; } | sched::task_finish();
+    while (counter < count) { ctx.poll(); }
 }
