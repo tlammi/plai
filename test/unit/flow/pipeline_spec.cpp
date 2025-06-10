@@ -14,17 +14,12 @@ TEST(Construct, Null) {
 template <class T>
 struct DummySrc final : public flow::Src<T> {
     std::optional<T> buffer{};
-    flow::SrcSubscriber* subscriber{};
     T produce() override { return *std::exchange(buffer, std::nullopt); }
-    bool data_available() override { return buffer.has_value(); }
-
-    void on_data_available(flow::SrcSubscriber* sub) override {
-        subscriber = sub;
-    }
+    bool src_ready() override { return buffer.has_value(); }
 
     void do_produce(T val) {
         buffer.emplace(std::move(val));
-        subscriber->src_data_available();
+        flow::Src<T>::notify_src_ready();
     }
 };
 
@@ -35,9 +30,7 @@ class DummySink final : public flow::Sink<T> {
     flow::SinkSubscriber* subscriber{};
     void consume(T val) override { produced.push_back(std::move(val)); }
 
-    bool ready() override { return true; }
-
-    void on_sink_ready(flow::SinkSubscriber* sub) override { subscriber = sub; }
+    bool sink_ready() override { return true; }
 };
 
 TEST(Construct, SrcSink) {
@@ -55,14 +48,10 @@ class Proxy final : public flow::Sink<T>, public flow::Src<U> {
     explicit Proxy(std::function<U(T)> converter) : m_conv(converter) {}
 
     U produce() override { return *std::exchange(m_buf, std::nullopt); }
-    bool data_available() override { return m_buf.has_value(); }
-
-    void on_data_available(flow::SrcSubscriber* sub) override {}
+    bool src_ready() override { return m_buf.has_value(); }
 
     void consume(T val) override { m_buf.emplace(m_conv(std::move(val))); }
-    bool ready() override { return !m_buf.has_value(); }
-
-    void on_sink_ready(flow::SinkSubscriber* sub) override {}
+    bool sink_ready() override { return !m_buf.has_value(); }
 
  private:
     std::function<U(T)> m_conv;

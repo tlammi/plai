@@ -2,6 +2,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <optional>
 #include <plai/util/defer.hpp>
 #include <utility>
 
@@ -75,6 +76,11 @@ class RingBuffer {
     size_t capacity() const noexcept {
         auto lk = std::unique_lock(m_mut);
         return m_ctx.capacity;
+    }
+
+    bool full() const noexcept {
+        auto lk = std::lock_guard(m_mut);
+        return m_ctx.count == m_ctx.capacity;
     }
 
     void push(const T& t) { emplace(t); }

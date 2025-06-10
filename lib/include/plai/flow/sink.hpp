@@ -30,16 +30,17 @@ class Sink {
      * */
     virtual void consume(T val) = 0;
 
-    /**
-     * \brief Query whether the Sink<T> can receive more data
-     * */
-    virtual bool ready() = 0;
+    virtual bool sink_ready() = 0;
 
-    /**
-     * \brief Set subscriber
-     *
-     * The argument may be null to indicate that there is no subscriber.
-     * */
-    virtual void on_sink_ready(SinkSubscriber* sub) = 0;
+    void set_subscriber(SinkSubscriber* sub) noexcept { m_sub = sub; }
+
+ protected:
+    void notify_sink_ready() {
+        auto ptr = m_sub.load();
+        if (ptr) ptr->sink_ready();
+    }
+
+ private:
+    std::atomic<SinkSubscriber*> m_sub{};
 };
 }  // namespace plai::flow

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <concepts>
+#include <optional>
 #include <type_traits>
 
 namespace plai::flow {
@@ -8,7 +10,7 @@ namespace plai::flow {
 class SrcSubscriber {
  public:
     virtual ~SrcSubscriber() = default;
-    virtual void src_data_available() = 0;
+    virtual void src_ready() = 0;
 };
 
 template <class T>
@@ -18,9 +20,19 @@ class Src {
     virtual ~Src() = default;
 
     virtual T produce() = 0;
-    virtual bool data_available() = 0;
 
-    virtual void on_data_available(SrcSubscriber* sub) = 0;
+    virtual bool src_ready() = 0;
+
+    void set_subscriber(SrcSubscriber* sub) noexcept { m_sub = sub; }
+
+ protected:
+    void notify_src_ready() {
+        auto ptr = m_sub.load();
+        if (ptr) ptr->src_ready();
+    }
+
+ private:
+    std::atomic<SrcSubscriber*> m_sub{};
 };
 
 namespace src_detail {

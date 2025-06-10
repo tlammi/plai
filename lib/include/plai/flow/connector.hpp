@@ -24,30 +24,30 @@ class Connector final : SrcSubscriber, SinkSubscriber {
 
     ~Connector() override {
         if (m_src) {
-            m_src->on_data_available(nullptr);
-            m_sink->on_sink_ready(nullptr);
+            m_src->set_subscriber(nullptr);
+            m_sink->set_subscriber(nullptr);
         }
     }
     void bootstrap() {
-        m_src->on_data_available(this);
-        m_sink->on_sink_ready(this);
+        m_src->set_subscriber(this);
+        m_sink->set_subscriber(this);
         sched::post(m_exec, [&] {
-            if (m_src->data_available() && m_sink->ready())
+            if (m_src->src_ready() && m_sink->sink_ready())
                 m_sink->consume(m_src->produce());
         });
     }
 
  private:
-    void src_data_available() override {
+    void src_ready() override {
         sched::post(m_exec, [&] {
-            if (!m_sink->ready()) return;
+            if (!m_sink->sink_ready()) return;
             m_sink->consume(m_src->produce());
         });
     }
 
     void sink_ready() override {
         sched::post(m_exec, [&] {
-            if (!m_src->data_available()) return;
+            if (!m_src->src_ready()) return;
             m_sink->consume(m_src->produce());
         });
     }

@@ -8,15 +8,11 @@ namespace sched = plai::sched;
 template <class T>
 struct Producer final : public flow::Src<T> {
     T produce() override { return *std::exchange(buf, std::nullopt); }
-    bool data_available() override { return buf.has_value(); }
-
-    void on_data_available(flow::SrcSubscriber* sub) override {
-        this->sub = sub;
-    }
+    bool src_ready() override { return buf.has_value(); }
 
     void push(T t) {
         buf.emplace(std::move(t));
-        if (sub) sub->src_data_available();
+        flow::Src<T>::notify_src_ready();
     }
 
     std::optional<T> buf{};
@@ -30,9 +26,7 @@ struct Consumer final : public flow::Sink<T> {
         buf.emplace(std::move(val));
     }
 
-    bool ready() override { return !buf.has_value(); }
-
-    void on_sink_ready(flow::SinkSubscriber* sub) override { this->sub = sub; }
+    bool sink_ready() override { return !buf.has_value(); }
 
     std::optional<T> buf{};
     flow::SinkSubscriber* sub{};
