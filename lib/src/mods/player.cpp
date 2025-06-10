@@ -22,8 +22,10 @@ constexpr auto MAX_ALPHA = std::numeric_limits<uint8_t>::max();
 enum class State {
     Init,
     Vid,
+    ImgBootstrap,
     Img,
     ImgDelay,
+    Img2,
 };
 
 enum class BlendState {
@@ -80,13 +82,6 @@ class PlayerImpl final : public Player {
         }
     }
 
-    void handle_frame(media::Frame frm) {
-        auto dims = frm.dims();
-        dims.scale_to(m_dims);
-        frm = m_conv(dims, frm);
-        m_text->update(frm);
-    }
-
     auto extract_buf() {
         auto lk = std::unique_lock(m_mut);
         auto item = std::exchange(m_buf, std::nullopt);
@@ -110,7 +105,7 @@ class PlayerImpl final : public Player {
             [&](DecodingMeta meta) {
                 m_render_task.set_period(meta_to_period(meta));
                 if (meta.still())
-                    m_st = State::Img;
+                    m_st = State::ImgBootstrap;
                 else
                     m_st = State::Vid;
             },
@@ -120,8 +115,34 @@ class PlayerImpl final : public Player {
                 m_st = State::Vid;
             });
     }
+    void step_img_bootstrap() {
+        auto item = extract_buf();
+        if (!item) return;
+        match(
+            *std::move(item),
+            [&](DecodingMeta meta) {
+                PLAI_WARN("Duplicate decoding metadata");
+            },
+            [&](media::Frame frm) {
+                m_prev_frm = std::exchange(m_frm, std::move(frm));
+                m_st = State::Img;
+            });
+    }
 
     void step_img() {
+        m_text->update(m_frm);
+        m_text->render_to(MAIN_TARGET);
+        m_timestamp = Clock::now();
+        m_st = State::ImgDelay;
+    }
+
+    void step_img_delay() {
+        auto now = Clock::now();
+        if (now - m_timestamp >= m_opts.image_dur) m_st = State::Img2;
+        m_text->render_to(MAIN_TARGET);
+    }
+
+    void step_img2() {
         auto item = extract_buf();
         if (!item) return;
         match(
@@ -135,18 +156,8 @@ class PlayerImpl final : public Player {
                 m_alpha_calc = AlphaCalc(m_opts.blend_dur);
             },
             [&](media::Frame frm) {
-                m_prev_frm = std::exchange(m_frm, std::move(frm));
-                m_text->update(m_frm);
-                m_text->render_to(MAIN_TARGET);
-                m_timestamp = Clock::now();
-                m_st = State::ImgDelay;
+                PLAI_WARN("Received second image frame");
             });
-    }
-
-    void step_img_delay() {
-        auto now = Clock::now();
-        if (now - m_timestamp >= m_opts.image_dur) m_st = State::Img;
-        m_text->render_to(MAIN_TARGET);
     }
 
     void step_vid() {
@@ -179,8 +190,8 @@ class PlayerImpl final : public Player {
         match(
             *(std::move(item)),
             [&](DecodingMeta meta) {
-                return;
                 PLAI_ERR("Got consecutive media metas");
+                return;
             },
             [&](media::Frame frm) {
                 m_prev_frm = std::exchange(m_frm, std::move(frm));
@@ -193,11 +204,11 @@ class PlayerImpl final : public Player {
                 } else if (m_st == Img && m_prev_st == Vid) {
                     m_alpha_calc = AlphaCalc(WATERMARK_BLEND);
                     m_blend_state = BlendState::FadeInWatermarks;
-                } else if (m_st == Vid && m_prev_st == Img) {
+                } else if (m_st == Vid && m_prev_st == Img2) {
                     m_blend_state = BlendState::Blend;
                     m_text->blend_mode(BlendMode::Blend);
                     m_back->blend_mode(BlendMode::Blend);
-                } else if (m_st == Img && m_prev_st == Img) {
+                } else if (m_st == Img && m_prev_st == Img2) {
                     m_blend_state = BlendState::Blend;
                     m_text->blend_mode(BlendMode::Blend);
                     m_back->blend_mode(BlendMode::Blend);
@@ -205,7 +216,8 @@ class PlayerImpl final : public Player {
                     PLAI_FATAL(
                         "Invalid combination of states while preparing to "
                         "blend: {} and {}",
-                        underlying_cast(m_st), underlying_cast(m_prev_st));
+                        magic_enum::enum_name((m_st)),
+                        magic_enum::enum_name(m_prev_st));
                     std::terminate();
                 }
             });
@@ -255,8 +267,10 @@ class PlayerImpl final : public Player {
         switch (m_st) {
             case State::Init: step_init(); return;
             case State::Vid: step_vid(); return;
+            case State::ImgBootstrap: step_img_bootstrap(); return;
             case State::Img: step_img(); return;
             case State::ImgDelay: step_img_delay(); return;
+            case State::Img2: step_img2(); return;
         }
     }
 
