@@ -19,6 +19,7 @@ class PlayerImpl final : public Player {
         : m_exec(std::move(exec)),
           m_front(frontend),
           m_ctx{
+              .opts = std::move(opts),
               .text = frontend->texture(),
               .back = frontend->texture(),
               .task = &m_render_task,
@@ -57,6 +58,13 @@ class PlayerImpl final : public Player {
     void step() {
         m_front->render_clear();
         m_sm();
+        m_ctx.back->render_to(player::MAIN_TARGET);
+        m_ctx.text->render_to(player::MAIN_TARGET);
+        for (size_t i = 0; i < m_ctx.watermark_textures.size(); ++i) {
+            auto& text = m_ctx.watermark_textures.at(i);
+            auto& watermark = m_ctx.opts.watermarks.at(i);
+            text->render_to(watermark.target);
+        }
         m_front->render_current();
     }
 

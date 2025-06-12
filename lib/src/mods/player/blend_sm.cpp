@@ -37,15 +37,14 @@ auto BlendSm::step(st::tag_t<Init>) -> state_type {
         m_alpha = AlphaCalc(WATERMARK_BLEND);
         return WatermarkFadeIn;
     }
+    m_ctx->task->set_period(PERIOD_30MS);
     m_alpha = AlphaCalc(m_ctx->opts.blend_dur);
     return Blend;
 }
 
 auto BlendSm::step(st::tag_t<WatermarkFadeIn>) -> state_type {
     auto alpha = m_alpha();
-    m_ctx->back->update(m_ctx->prev_frm);
-    m_ctx->back->render_to(MAIN_TARGET);
-    m_ctx->render_watermarks(alpha);
+    m_ctx->set_watermark_alpha(alpha);
     if (alpha == MAX_ALPHA) {
         m_alpha = AlphaCalc(m_ctx->opts.blend_dur);
         return Blend;
@@ -55,14 +54,11 @@ auto BlendSm::step(st::tag_t<WatermarkFadeIn>) -> state_type {
 
 auto BlendSm::step(st::tag_t<Blend>) -> state_type {
     auto alpha = m_alpha();
-    std::println("setting alpha {}", alpha);
     assert(m_ctx->prev_frm);
     m_ctx->back->update(m_ctx->prev_frm);
     m_ctx->back->alpha(MAX_ALPHA - alpha);
-    m_ctx->back->render_to(MAIN_TARGET);
     m_ctx->text->update(m_ctx->frm);
     m_ctx->text->alpha(alpha);
-    m_ctx->text->render_to(MAIN_TARGET);
     if (alpha == MAX_ALPHA) {
         if (!m_src_img && m_dst_img) {
             m_alpha = AlphaCalc(WATERMARK_BLEND);
@@ -76,7 +72,7 @@ auto BlendSm::step(st::tag_t<Blend>) -> state_type {
 
 auto BlendSm::step(st::tag_t<WatermarkFadeOut>) -> state_type {
     auto alpha = m_alpha();
-    m_ctx->render_watermarks(MAX_ALPHA - alpha);
+    m_ctx->set_watermark_alpha(MAX_ALPHA - alpha);
     if (alpha == MAX_ALPHA) {
         set_blend_modes(*m_ctx, BlendMode::None);
         return Done;

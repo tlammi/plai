@@ -5,6 +5,8 @@
 #include <plai/mods/decoder.hpp>
 #include <plai/mods/player.hpp>
 
+using namespace std::literals;
+
 struct MediaSrc final : public plai::flow::Src<plai::media::Media> {
     std::vector<std::vector<uint8_t>> medias{};
     size_t idx = 0;
@@ -38,7 +40,8 @@ int main(int argc, char** argv) {
     auto decoder = plai::mods::make_decoder(decoding_ctx.get_executor());
 
     auto frontend = plai::frontend(plai::FrontendType::Sdl2);
-    auto player = plai::mods::make_player(ctx.get_executor(), frontend.get());
+    auto player = plai::mods::make_player(ctx.get_executor(), frontend.get(),
+                                          {.blend_dur = 1s});
 
     auto pipeline = plai::flow::pipeline(ctx.get_executor()) | msrc | *decoder |
                     *player | plai::flow::pipeline_finish();

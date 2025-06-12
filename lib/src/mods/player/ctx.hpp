@@ -38,6 +38,6 @@ struct Ctx {
 
     std::optional<Decoded> extract_buf();
 
-    void render_watermarks(uint8_t alpha = MAX_ALPHA);
+    void set_watermark_alpha(uint8_t alpha = MAX_ALPHA);
 };
 }  // namespace plai::mods::player
