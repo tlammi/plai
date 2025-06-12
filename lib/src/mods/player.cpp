@@ -60,10 +60,13 @@ class PlayerImpl final : public Player {
         m_sm();
         m_ctx.back->render_to(player::MAIN_TARGET);
         m_ctx.text->render_to(player::MAIN_TARGET);
-        for (size_t i = 0; i < m_ctx.watermark_textures.size(); ++i) {
-            auto& text = m_ctx.watermark_textures.at(i);
-            auto& watermark = m_ctx.opts.watermarks.at(i);
-            text->render_to(watermark.target);
+        if (m_ctx.watermark_alpha > 0) {
+            for (size_t i = 0; i < m_ctx.watermark_textures.size(); ++i) {
+                auto& text = m_ctx.watermark_textures.at(i);
+                auto& watermark = m_ctx.opts.watermarks.at(i);
+                text->alpha(m_ctx.watermark_alpha);
+                text->render_to(watermark.target);
+            }
         }
         m_front->render_current();
     }

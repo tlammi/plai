@@ -19,7 +19,4 @@ std::optional<Decoded> Ctx::extract_buf() {
     return item;
 }
 
-void Ctx::set_watermark_alpha(uint8_t alpha) {
-    for (auto& text : watermark_textures) { text->alpha(alpha); }
-}
 }  // namespace plai::mods::player

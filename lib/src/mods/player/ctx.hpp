@@ -28,6 +28,7 @@ struct Ctx {
     media::Frame prev_frm{};
     Vec<int> dims{DEFAULT_DIMS};
     media::FrameConverter m_conv{};
+    uint8_t watermark_alpha{};
 
     std::unique_ptr<Texture> text;
     std::unique_ptr<Texture> back;
@@ -37,7 +38,5 @@ struct Ctx {
     std::function<void()> notify_sink_ready;
 
     std::optional<Decoded> extract_buf();
-
-    void set_watermark_alpha(uint8_t alpha = MAX_ALPHA);
 };
 }  // namespace plai::mods::player
