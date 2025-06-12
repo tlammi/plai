@@ -4,7 +4,6 @@
 #include <plai/st/detail.hpp>
 #include <plai/st/tag.hpp>
 #include <plai/thirdparty/magic_enum.hpp>
-#include <print>
 
 namespace plai::st {
 

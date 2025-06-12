@@ -134,17 +134,18 @@ constexpr detail::TaskFinish task_finish() noexcept { return {}; }
 template <class Exec, class Period, class... Fns>
 class TaskBuilder {
  public:
-    explicit TaskBuilder(Exec exec) noexcept
+    constexpr explicit TaskBuilder(Exec exec) noexcept
         requires(sizeof...(Fns) == 0)
         : m_exec(std::move(exec)) {}
 
-    TaskBuilder(Exec exec, Period period, std::tuple<Fns...> fns) noexcept
+    constexpr TaskBuilder(Exec exec, Period period,
+                          std::tuple<Fns...> fns) noexcept
         : m_exec(std::move(exec)),
           m_period(std::move(period)),
           m_fns(std::move(fns)) {}
 
     template <class Fn>
-    TaskBuilder<Exec, Period, Fns..., Fn> operator|(Fn&& fn) && {
+    constexpr TaskBuilder<Exec, Period, Fns..., Fn> operator|(Fn&& fn) && {
         return {std::move(m_exec), std::move(m_period),
                 std::tuple_cat(std::move(m_fns),
                                std::make_tuple(std::forward<Fn>(fn)))};
