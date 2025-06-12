@@ -26,10 +26,19 @@ class StateMachine {
 
     template <class... Ps>
     constexpr void operator()(Ps&&... ps) {
+        assert(!done());
         m_st = detail::tag_step<0>(m_impl, m_st, std::forward<Ps>(ps)...);
     }
 
-    constexpr void reset() noexcept { m_st = init_state; }
+    constexpr void reset() noexcept {
+        m_st = init_state;
+        m_impl.reset();
+    }
+
+    template <class... Ts>
+    void emplace(Ts&&... ts) {
+        m_impl = T(std::forward<Ts>(ts)...);
+    }
 
     constexpr state_type state() const noexcept { return m_st; }
     constexpr bool initial() const noexcept { return m_st == init_state; }

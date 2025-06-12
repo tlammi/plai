@@ -48,9 +48,10 @@ endif
 SRCS = []
 
 incdir = include_directories('include')
+priv_incdir = include_directories('src')
 
 subdir('src')
 
-libplai = library('plai', SRCS, dependencies: DEPS, include_directories: incdir)
+libplai = library('plai', SRCS, dependencies: DEPS, include_directories: [incdir, priv_incdir])
 libplai_dep = declare_dependency(link_with: libplai, include_directories: incdir, dependencies: DEPS)
 

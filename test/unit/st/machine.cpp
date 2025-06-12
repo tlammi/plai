@@ -17,6 +17,8 @@ struct StepThrough {
     state_type step(st::tag_t<Init>) { return A; }
     state_type step(st::tag_t<A>) { return B; }
     state_type step(st::tag_t<B>) { return Done; }
+
+    void reset() {}
 };
 
 TEST(Sm, Init) {
@@ -86,6 +88,8 @@ struct Params {
         if (!value) return Done;
         return Run;
     }
+
+    void reset() {}
 };
 
 TEST(Sm, Param) {
