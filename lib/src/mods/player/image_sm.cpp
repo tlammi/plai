@@ -17,6 +17,7 @@ auto ImageSm::step(st::tag_t<Init>) -> state_type {
                 return Done;
             },
             [&](media::Frame frm) {
+                assert(frm);
                 m_ctx->prev_frm = std::exchange(m_ctx->frm, std::move(frm));
                 return Show;
             });
@@ -37,9 +38,6 @@ auto ImageSm::step(st::tag_t<Delay>) -> state_type {
     return Delay;
 }
 
-auto ImageSm::step(st::tag_t<End>) -> state_type {
-    m_ctx->prev_frm = std::exchange(m_ctx->frm, {});
-    return Done;
-}
+auto ImageSm::step(st::tag_t<End>) -> state_type { return Done; }
 
 }  // namespace plai::mods::player

@@ -1,5 +1,7 @@
 #include "ctx.hpp"
 
+#include <print>
+
 namespace plai::mods::player {
 
 std::optional<Decoded> Ctx::extract_buf() {
@@ -11,11 +13,12 @@ std::optional<Decoded> Ctx::extract_buf() {
     auto* frm = std::get_if<media::Frame>(&*item);
     if (frm) {
         auto dims = frm->dims();
-        dims.scale_to(dims);
+        dims.scale_to(this->dims);
         *frm = m_conv(dims, *frm);
     }
     return item;
 }
+
 void Ctx::render_watermarks(uint8_t alpha) {
     for (size_t i = 0; i < watermark_textures.size(); ++i) {
         auto& text = watermark_textures.at(i);

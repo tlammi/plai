@@ -32,6 +32,7 @@ auto RootSm::step(st::tag_t<Init>) -> state_type {
                 return Vid;
         },
         [&](media::Frame frm) {
+            m_ctx->prev_frm = std::exchange(m_ctx->frm, std::move(frm));
             PLAI_WARN("Got frame input while in Init state. Deducing as video");
             return Vid;
         });
@@ -75,6 +76,8 @@ auto RootSm::step(st::tag_t<Img>) -> state_type {
                 return Img2Vid;
             },
             [&](media::Frame frm) {
+                assert(frm);
+                m_ctx->prev_frm = std::exchange(m_ctx->frm, std::move(frm));
                 PLAI_WARN("Received a frame when expecting metadata");
                 m_ctx->task->set_period(PERIOD_30MS);
                 return Vid;

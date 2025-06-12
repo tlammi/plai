@@ -23,7 +23,6 @@ class DecoderImpl final : public Decoder {
                        m_media->data.size());
         }
         sched::post(m_exec, memfn(this, &DecoderImpl::launch_decoding));
-        std::println("decoder consumed");
     }
 
     bool sink_ready() override {
@@ -32,7 +31,6 @@ class DecoderImpl final : public Decoder {
     }
 
     Decoded produce() override {
-        std::println("decoder producing");
         PLAI_TRACE("Decoder producing a frame");
         return m_frame_buf.pop();
     }

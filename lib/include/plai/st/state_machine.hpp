@@ -3,6 +3,7 @@
 #include <plai/st/detail.hpp>
 #include <plai/st/tag.hpp>
 #include <plai/thirdparty/magic_enum.hpp>
+#include <print>
 
 namespace plai::st {
 
@@ -27,7 +28,15 @@ class StateMachine {
     template <class... Ps>
     constexpr void operator()(Ps&&... ps) {
         assert(!done());
+        auto prev_st = m_st;
+        std::println("executing state {}::{}",
+                     magic_enum::enum_type_name<state_type>(),
+                     magic_enum::enum_name(m_st));
         m_st = detail::tag_step<0>(m_impl, m_st, std::forward<Ps>(ps)...);
+        if (m_st != prev_st)
+            std::println("reached state {}::{}",
+                         magic_enum::enum_type_name<state_type>(),
+                         magic_enum::enum_name(m_st));
     }
 
     constexpr void reset() noexcept {
