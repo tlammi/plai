@@ -31,7 +31,7 @@ auto read_medias(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     if (argc < 2) std::terminate();
-    plai::logs::init(plai::logs::Level::Trace);
+    plai::logs::init(plai::logs::Level::Info);
     auto msrc = MediaSrc(read_medias(argc, argv));
     auto ctx = plai::sched::IoContext();
     auto decoding_ctx = boost::asio::thread_pool(1);
