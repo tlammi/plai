@@ -8,6 +8,12 @@ namespace plai {
 template <class... Ts>
 struct pack {};
 
+template <auto... Vs>
+struct value_pack {};
+
+template <class T, T... Vs>
+struct typed_value_pack {};
+
 template <class Pack>
 struct pack_size;
 
