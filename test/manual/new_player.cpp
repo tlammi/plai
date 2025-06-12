@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     if (argc < 3) std::terminate();
     auto watermark_data = plai::fs::read_bin(argv[1]);
     auto watermark = plai::media::decode_image(argv[1]);
-    plai::logs::init(plai::logs::Level::Info);
+    plai::logs::init(plai::logs::Level::Debug);
     auto msrc = MediaSrc(read_medias(argc, argv));
     auto ctx = plai::sched::IoContext();
     auto decoding_ctx = boost::asio::thread_pool(1);

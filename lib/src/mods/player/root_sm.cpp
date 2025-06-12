@@ -20,6 +20,9 @@ constexpr Duration meta_to_period(const DecodingMeta& meta) {
 using enum RootSt;
 
 auto RootSm::step(st::tag_t<Init>) -> state_type {
+    for (auto& text : m_ctx->watermark_textures) {
+        text->blend_mode(BlendMode::Blend);
+    }
     auto item = m_ctx->extract_buf();
     if (!item) return Init;
     return match(
@@ -94,7 +97,7 @@ auto RootSm::step(st::tag_t<Vid2Vid>) -> state_type {
         m_blend_sm.reset();
         return Vid;
     }
-    return Img2Vid;
+    return Vid2Vid;
 }
 
 auto RootSm::step(st::tag_t<Vid2Img>) -> state_type {
@@ -102,9 +105,9 @@ auto RootSm::step(st::tag_t<Vid2Img>) -> state_type {
     m_blend_sm();
     if (m_blend_sm.done()) {
         m_blend_sm.reset();
-        return Vid;
+        return Img;
     }
-    return Img2Vid;
+    return Vid2Img;
 }
 
 auto RootSm::step(st::tag_t<Img2Vid>) -> state_type {

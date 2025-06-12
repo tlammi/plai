@@ -7,7 +7,6 @@ namespace {
 void set_blend_modes(Ctx& ctx, BlendMode bm) {
     ctx.text->blend_mode(bm);
     ctx.back->blend_mode(bm);
-    for (auto& text : ctx.watermark_textures) { text->blend_mode(bm); }
 }
 }  // namespace
 
@@ -60,7 +59,7 @@ auto BlendSm::step(st::tag_t<Blend>) -> state_type {
     m_ctx->text->update(m_ctx->frm);
     m_ctx->text->alpha(alpha);
     if (alpha == MAX_ALPHA) {
-        if (!m_src_img && m_dst_img) {
+        if (m_src_img && !m_dst_img) {
             m_alpha = AlphaCalc(WATERMARK_BLEND);
             return WatermarkFadeOut;
         }
