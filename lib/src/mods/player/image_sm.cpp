@@ -3,6 +3,7 @@
 #include <plai/util/match.hpp>
 
 namespace plai::mods::player {
+using namespace std::literals;
 
 auto ImageSm::step(st::tag_t<Init>) -> state_type {
     if (!m_ctx->frm) {
@@ -22,6 +23,7 @@ auto ImageSm::step(st::tag_t<Init>) -> state_type {
                 return Show;
             });
     }
+    m_ctx->task->set_period(100ms);
     return Show;
 }
 
