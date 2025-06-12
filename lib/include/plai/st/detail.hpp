@@ -17,12 +17,14 @@ constexpr auto init_state = magic_enum::enum_value<E>(0);
 template <concepts::enum_type E>
 constexpr auto done_state = magic_enum::enum_value<E>(state_count<E> - 1);
 
-template <size_t Idx, class T, concepts::enum_type E>
-constexpr decltype(auto) tag_step(T& t, E e) {
+template <size_t Idx, class T, concepts::enum_type E, class... Ps>
+constexpr decltype(auto) tag_step(T& t, E e, Ps&&... ps) {
     constexpr auto enum_value = magic_enum::enum_value<E>(Idx);
-    if (e == enum_value) { return t.step(tag<enum_value>); }
+    if (e == enum_value) {
+        return t.step(tag<enum_value>, std::forward<Ps>(ps)...);
+    }
     if constexpr (Idx < state_count<E> - 2)
-        return tag_step<Idx + 1>(t, e);
+        return tag_step<Idx + 1>(t, e, std::forward<Ps>(ps)...);
     else
         throw ValueError("Invalid state");
 }

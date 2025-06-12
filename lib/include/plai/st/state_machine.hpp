@@ -24,12 +24,22 @@ class StateMachine {
     constexpr explicit StateMachine(std::in_place_t /*unused*/, Ts&&... ts)
         : m_impl(std::forward<Ts>(ts)...) {}
 
-    void operator()() { m_st = detail::tag_step<0>(m_impl, m_st); }
+    template <class... Ps>
+    constexpr void operator()(Ps&&... ps) {
+        m_st = detail::tag_step<0>(m_impl, m_st, std::forward<Ps>(ps)...);
+    }
 
     constexpr void reset() noexcept { m_st = init_state; }
 
     constexpr state_type state() const noexcept { return m_st; }
+    constexpr bool initial() const noexcept { return m_st == init_state; }
     constexpr bool done() const noexcept { return m_st == done_state; }
+
+    T& operator*() noexcept { return m_impl; }
+    const T& operator*() const noexcept { return m_impl; }
+
+    T* operator->() noexcept { return &m_impl; }
+    const T* operator->() const noexcept { return &m_impl; }
 
  private:
     T m_impl{};

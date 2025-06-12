@@ -46,8 +46,7 @@ TEST(Sm, StepEnd) {
 }
 
 enum class SimpleSt {
-    Init,
-    A,
+    Run,
     Done,
 };
 
@@ -56,9 +55,8 @@ struct Stateful {
     using enum SimpleSt;
     using state_type = SimpleSt;
 
-    state_type step(st::tag_t<Init>) { return A; }
-    state_type step(st::tag_t<A>) {
-        if (*run) return A;
+    state_type step(st::tag_t<Run>) {
+        if (*run) return Run;
         return Done;
     }
 };
@@ -68,12 +66,35 @@ TEST(Sm, Stateful) {
     bool run = true;
     auto sm = st::StateMachine<Stateful>({.run = &run});
     sm();
-    ASSERT_EQ(sm.state(), A);
+    ASSERT_EQ(sm.state(), Run);
     sm();
-    ASSERT_EQ(sm.state(), A);
+    ASSERT_EQ(sm.state(), Run);
     sm();
-    ASSERT_EQ(sm.state(), A);
+    ASSERT_EQ(sm.state(), Run);
     run = false;
     sm();
+    ASSERT_TRUE(sm.done());
+}
+
+struct Params {
+    int value{};
+    using enum SimpleSt;
+    using state_type = SimpleSt;
+
+    SimpleSt step(st::tag_t<Run>, int v) {
+        value = v;
+        if (!value) return Done;
+        return Run;
+    }
+};
+
+TEST(Sm, Param) {
+    using enum SimpleSt;
+    auto sm = st::StateMachine<Params>();
+    sm(1);
+    ASSERT_EQ(sm->value, 1);
+    sm(2);
+    ASSERT_EQ(sm->value, 2);
+    sm(0);
     ASSERT_TRUE(sm.done());
 }
