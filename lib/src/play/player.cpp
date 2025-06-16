@@ -155,10 +155,12 @@ class Player::Impl {
         m_back_text->blend_mode(BlendMode::Blend);
         if (!was_still && is_still) {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
+            m_back_text->alpha(std::numeric_limits<uint8_t>::max());
             auto res = poll_loop([&] {
                 m_front->render_clear();
                 m_back_text->update(m_prev_frame);
                 auto alpha = watermark_alpha_calc();
+                m_back_text->render_to(IMG_TARGET);
                 render_watermarks(alpha);
                 m_front->render_current();
                 return alpha == max_alpha;
