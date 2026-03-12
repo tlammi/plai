@@ -29,17 +29,7 @@ class Frame {
     int height() const noexcept;
     Vec<int> dims() const noexcept { return {width(), height()}; }
 
-    // Implementation detail. Don't touch.
-    constexpr void is_dynamic(bool v) noexcept { m_is_dyn = v; }
-
-    constexpr bool is_dynamic() const noexcept { return m_is_dyn; }
-
  private:
     AVFrame* m_raw;
-    // Hack to get libswscale working.
-    //
-    // It does some special memory allocation which means we need to do some
-    // special memory deallocation.
-    bool m_is_dyn{false};
 };
 }  // namespace plai::media

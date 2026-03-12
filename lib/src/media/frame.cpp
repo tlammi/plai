@@ -12,19 +12,17 @@ Frame::Frame() : m_raw(av_frame_alloc()) {
     if (!m_raw) throw std::bad_alloc();
 }
 Frame::Frame(Frame&& other) noexcept
-    : m_raw(std::exchange(other.m_raw, nullptr)),
-      m_is_dyn(std::exchange(other.m_is_dyn, false)) {}
+    : m_raw(std::exchange(other.m_raw, nullptr)) {}
 
 Frame& Frame::operator=(Frame&& other) noexcept {
     auto tmp = Frame(std::move(other));
     std::swap(m_raw, tmp.m_raw);
-    std::swap(m_is_dyn, tmp.m_is_dyn);
     return *this;
 }
 
 Frame::~Frame() {
     if (m_raw) {
-        if (m_is_dyn) av_freep(&m_raw->data);
+        av_frame_unref(m_raw);
         av_frame_free(&m_raw);
     }
 }
