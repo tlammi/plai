@@ -1,4 +1,6 @@
 
+#include <cassert>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 }
@@ -11,6 +13,19 @@ namespace plai::media {
 Frame::Frame() : m_raw(av_frame_alloc()) {
     if (!m_raw) throw std::bad_alloc();
 }
+
+Frame::Frame(const Frame& other) : Frame() {
+    int res = av_frame_ref(m_raw, other.m_raw);
+    // TODO: Gracefully check and avoid memory leaks
+    assert(!res);
+}
+
+Frame& Frame::operator=(const Frame& other) {
+    av_frame_unref(m_raw);
+    av_frame_ref(m_raw, other.m_raw);
+    return *this;
+}
+
 Frame::Frame(Frame&& other) noexcept
     : m_raw(std::exchange(other.m_raw, nullptr)) {}
 

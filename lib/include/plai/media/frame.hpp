@@ -9,8 +9,8 @@ class Frame {
     Frame();
     constexpr explicit Frame(AVFrame* raw) noexcept : m_raw(raw) {}
 
-    Frame(const Frame&) = delete;
-    Frame& operator=(const Frame&) = delete;
+    Frame(const Frame& other);
+    Frame& operator=(const Frame& other);
 
     Frame(Frame&& other) noexcept;
     Frame& operator=(Frame&& other) noexcept;

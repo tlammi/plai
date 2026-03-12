@@ -57,8 +57,12 @@ Decoder& Decoder::operator<<(const Packet& pkt) {
 }
 
 bool Decoder::operator>>(Frame& frm) {
-    int res = avcodec_receive_frame(m_ctx, frm.raw());
-    if (res >= 0) return true;
+    av_frame_unref(m_internal.raw());
+    int res = avcodec_receive_frame(m_ctx, m_internal.raw());
+    if (res >= 0) {
+        frm = m_internal;
+        return true;
+    }
     if (res == AVERROR(EAGAIN)) return false;
     throw AVException(res);
 }

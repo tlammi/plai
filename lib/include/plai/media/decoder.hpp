@@ -55,6 +55,11 @@ class Decoder {
 
  private:
     AVCodecContext* m_ctx;
+
+    // This is the target for decoding. The output frames reference the same
+    // data via a reference counted buffer. The reference count is thread safe.
+    Frame m_internal{};
+
 #ifndef NDEBUG
     // used for verifying that all packets come from a single stream
     std::size_t m_stream_idx{std::numeric_limits<std::size_t>::max()};
