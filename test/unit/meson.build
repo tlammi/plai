@@ -18,7 +18,6 @@ TESTS = files(
 )
 
 subdir('net')
-subdir('flow')
 subdir('sched')
 subdir('st')
 

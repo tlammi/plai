@@ -1,16 +1,31 @@
 #pragma once
 
-#include <plai/frontend/frontend.hpp>
-#include <plai/mods/decoder.hpp>
-#include <plai/play/player.hpp>
+#include <plai/media2/media.hpp>
+#include <plai/mods/module.hpp>
 
 namespace plai::mods {
 
-class Player : public flow::Sink<Decoded> {
+/**
+ * \brief Stream of media consumed by a Player
+ * */
+class MediaStream {
  public:
+    virtual ~MediaStream() = default;
+
+    virtual ex::AnySenderOf<media2::Media> next_media() = 0;
+
+ private:
 };
 
-std::unique_ptr<Player> make_player(sched::Executor exec, Frontend* frontend,
-                                    play::PlayerOpts opts = {});
+class Player : public Module {
+ public:
+    explicit Player(MediaStream& stream) : m_stream(&stream) {}
 
+    void start(Context& ctx) override {}
+
+    void stop() override {}
+
+ private:
+    MediaStream* m_stream;
+};
 }  // namespace plai::mods

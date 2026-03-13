@@ -4,8 +4,10 @@ cmake = import('cmake')
 
 add_project_arguments('-Wfatal-errors', language:'cpp')
 
-
 reflectcpp_dep = dependency('reflect-cpp', 'reflectcpp', required: false)
+stdexec_dep = dependency('stdexec', fallback: ['stdexec', 'stdexec_dep'])
+# Needed by stdexec
+tbb_dep = dependency('tbb')
 
 if not reflectcpp_dep.found()
   opts = cmake.subproject_options()
