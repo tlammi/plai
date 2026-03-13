@@ -1,7 +1,9 @@
 #pragma once
 
+#include <exec/start_detached.hpp>
 #include <plai/media2/media.hpp>
 #include <plai/mods/module.hpp>
+#include <print>
 
 namespace plai::mods {
 
@@ -21,7 +23,11 @@ class Player : public Module {
  public:
     explicit Player(MediaStream& stream) : m_stream(&stream) {}
 
-    void start(Context& ctx) override {}
+    void start(Context& ctx) override {
+        exec::start_detached(stdexec::on(
+            ctx.scheduler(),
+            stdexec::just() | stdexec::then([&ctx]() { ctx.request_stop(); })));
+    }
 
     void stop() override {}
 

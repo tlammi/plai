@@ -8,21 +8,18 @@ class Playlist final : public plai::mods::MediaStream {
 };
 
 struct Ctx final : public plai::mods::Context {
-    plai::ex::AnyScheduler sched;
+    stdexec::run_loop loop{};
 
-    explicit Ctx(plai::ex::AnyScheduler sched) : sched(std::move(sched)) {}
+    plai::ex::AnyScheduler scheduler() override { return loop.get_scheduler(); }
 
-    plai::ex::AnyScheduler scheduler() override { return sched; }
-
-    void request_stop() override {}
+    void request_stop() override { loop.finish(); }
 };
 
 int main() {
     auto playlist = Playlist();
     auto player = plai::mods::Player(playlist);
 
-    auto loop = exec::single_thread_context();
-
-    auto ctx = Ctx(loop.get_scheduler());
+    auto ctx = Ctx();
     player.start(ctx);
+    ctx.loop.run();
 }
