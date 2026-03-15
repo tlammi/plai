@@ -2,6 +2,7 @@
 
 #include <exec/any_sender_of.hpp>
 #include <plai/ex/completion_signatures.hpp>
+#include <stdexec/execution.hpp>
 
 namespace plai::ex {
 

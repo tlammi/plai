@@ -12,7 +12,7 @@ struct Ctx final : public plai::mods::Context {
 
     plai::ex::AnyScheduler scheduler() override { return loop.get_scheduler(); }
 
-    void request_stop() override { loop.finish(); }
+    void request_finish() override { loop.finish(); }
 };
 
 int main() {

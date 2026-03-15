@@ -8,12 +8,12 @@
 
 namespace plai {
 
-enum class FrontendType {
+enum class FrontendType : uint8_t {
     Sdl2,  ///< SDL2 frontend
     Void,  ///< frontend discarding the frames
 };
 
-enum class BlendMode {
+enum class BlendMode : uint8_t {
     None,   // draw over
     Blend,  // alpha blendingrgb
             // rgb = (src * alpha) + (dst * (1-alpha))
@@ -23,7 +23,7 @@ enum class BlendMode {
 /**
  * \brief Position of a resource
  * */
-enum class Position {
+enum class Position : uint8_t {
     Begin,   ///< Position the resource at the start of some range
     Middle,  ///< Position the resource at the middle of some range
     End,     ///< Position the resource at the end of some range
@@ -33,7 +33,7 @@ enum class Position {
  * \brief How the texture is to be used
  *
  * */
-enum class TextureAccess {
+enum class TextureAccess : uint8_t {
     /**
      * \brief Changes rarely
      *
@@ -48,7 +48,7 @@ enum class TextureAccess {
     Streaming,
 };
 
-enum class Scaling {
+enum class Scaling : uint8_t {
     Fit,      // Scale image without distortion
     Stretch,  // Force fit the target rectangle
 };

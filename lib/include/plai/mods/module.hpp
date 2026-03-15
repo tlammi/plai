@@ -15,11 +15,9 @@ class Context {
     virtual ex::AnyScheduler scheduler() = 0;
 
     /**
-     * \brief Reguest process to stop
-     *
-     * This might happen e.g. due to user input on GUI.
+     * \brief Request program to exit gracefully
      * */
-    virtual void request_stop() = 0;
+    virtual void request_finish() = 0;
 
  protected:
     constexpr ~Context() noexcept = default;
@@ -39,7 +37,12 @@ class Module {
     virtual void start(Context& ctx) = 0;
 
     /**
-     * \brief Inform module to stop
+     * \brief Gracefully stop the module
+     * */
+    virtual void finish() = 0;
+
+    /**
+     * \brief Stop the module ungracefully
      * */
     virtual void stop() = 0;
 };

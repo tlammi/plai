@@ -1,5 +1,7 @@
 #pragma once
 
+#include <exec/env.hpp>
+#include <exec/repeat_until.hpp>
 #include <exec/start_detached.hpp>
 #include <plai/logs/logs.hpp>
 #include <plai/media2/media.hpp>
@@ -25,16 +27,19 @@ class Player : public Module {
     explicit Player(MediaStream& stream) : m_stream(&stream) {}
 
     void start(Context& ctx) override {
+        auto sched = ctx.scheduler();
         exec::start_detached(stdexec::on(
             ctx.scheduler(),
             m_stream->next_media() | stdexec::then([](auto media) {
                 PLAI_DEBUG("received media with size: {}", media.data().size());
             })));
         exec::start_detached(stdexec::on(
-            ctx.scheduler(),
-            stdexec::just() | stdexec::then([&ctx]() { ctx.request_stop(); })));
+            ctx.scheduler(), stdexec::just() | stdexec::then([&ctx]() {
+                                 ctx.request_finish();
+                             })));
     }
 
+    void finish() override {}
     void stop() override {}
 
  private:
