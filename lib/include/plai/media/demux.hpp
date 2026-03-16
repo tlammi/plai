@@ -24,6 +24,9 @@ class Demux {
      * \brief Demultiplex a file
      * */
     explicit Demux(std::span<const uint8_t> buf);
+    explicit Demux(std::span<const std::byte> buf)
+        : Demux(std::span<const uint8_t>(
+              reinterpret_cast<const uint8_t*>(buf.data()), buf.size())) {}
 
     /**
      * \brief Create a demux targeting a file

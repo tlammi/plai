@@ -2,9 +2,7 @@
 #include <plai/mods/player.hpp>
 
 class Playlist final : public plai::mods::MediaStream {
-    plai::ex::AnySenderOf<plai::media2::Media> next_media() override {
-        return stdexec::just(plai::media2::Media({}));
-    }
+    plai::media2::Media next_media() override { return plai::media2::Media{}; }
 };
 
 struct Ctx final : public plai::mods::Context {

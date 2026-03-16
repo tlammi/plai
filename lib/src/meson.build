@@ -1,4 +1,5 @@
 subdir('media')
+subdir('media2')
 subdir('logs')
 subdir('frontend')
 subdir('fs')

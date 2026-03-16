@@ -17,32 +17,67 @@ class MediaStream {
  public:
     virtual ~MediaStream() = default;
 
-    virtual ex::AnySenderOf<media2::Media> next_media() = 0;
+    /**
+     * \brief Next media to play
+     *
+     * Empty media indicates an empty media
+     * */
+    virtual media2::Media next_media() = 0;
 
  private:
 };
 
 class Player : public Module {
  public:
+    enum class State {
+        Idle,
+        Run,
+        Finish,
+        Stop,
+    };
     explicit Player(MediaStream& stream) : m_stream(&stream) {}
 
     void start(Context& ctx) override {
-        auto sched = ctx.scheduler();
-        exec::start_detached(stdexec::on(
-            ctx.scheduler(),
-            m_stream->next_media() | stdexec::then([](auto media) {
-                PLAI_DEBUG("received media with size: {}", media.data().size());
-            })));
-        exec::start_detached(stdexec::on(
-            ctx.scheduler(), stdexec::just() | stdexec::then([&ctx]() {
-                                 ctx.request_finish();
-                             })));
+        m_st = State::Run;
+        m_ctx = &ctx;
+        play();
     }
 
-    void finish() override {}
-    void stop() override {}
+    void play() {
+        // Either already running or exiting
+        if (m_st != State::Idle) return;
+        detach([this] {
+            if (!m_enqueued_media) m_enqueued_media = m_stream->next_media();
+            run();
+        });
+    }
+
+    void pause() {
+        detach([this] { m_st = State::Idle; });
+    }
+
+    void finish() override {
+        detach([this] { m_st = State::Finish; });
+    }
+    void stop() override {
+        detach([this] { m_st = State::Stop; });
+    }
 
  private:
+    void run() {
+        m_curr_media = std::exchange(m_enqueued_media, m_stream->next_media());
+    }
+
+    template <class Fn>
+    void detach(Fn&& fn) {
+        exec::start_detached(stdexec::schedule(m_ctx->scheduler()) |
+                             stdexec::then(std::forward<Fn>(fn)));
+    }
+
+    media2::Media m_curr_media{};
+    media2::Media m_enqueued_media{};
     MediaStream* m_stream;
+    Context* m_ctx{};
+    State m_st{State::Run};
 };
 }  // namespace plai::mods
