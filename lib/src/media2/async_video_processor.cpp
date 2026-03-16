@@ -68,6 +68,7 @@ struct Processor {
                 // set
                 ctx->frame(std::exchange(frm, {}));
             ++decoded_frames;
+            co_await ex::yield();
         }
         PLAI_DEBUG("decoded total {} frames", decoded_frames);
 
