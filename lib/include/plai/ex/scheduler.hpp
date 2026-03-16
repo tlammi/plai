@@ -9,8 +9,8 @@ namespace plai::ex {
 using AnyScheduler = exec::any_receiver_ref<
     CompletionSignature<>>::any_sender<>::any_scheduler<>;
 
-template <class T>
+template <class... Ts>
 using AnySenderOf = typename exec::any_receiver_ref<
-    CompletionSignature<T>>::template any_sender<>;
+    CompletionSignature<Ts...>>::template any_sender<>;
 
 }  // namespace plai::ex
