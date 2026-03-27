@@ -1,0 +1,198 @@
+openapi: 3.0.0
+info:
+  title: plai API
+  version: 0.0.1
+paths:
+  /_ping:
+    get:
+      operationId: ping
+      summary: Check if the server is up
+      responses:
+        '200':
+          description: OK
+  /medias/items/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Media ID
+    get:
+      operationId: mediaItemGet
+      summary: Media info
+      description: Get information about a media instance
+      responses:
+        '200':
+          description: JSON object describing the media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  size:
+                    type: integer
+                  sha256:
+                    type: string
+                example:
+                  size: 1234
+                  sha256: "deadbeef"
+        "404":
+          description: Media does not exist
+    delete:
+      operationId: mediaItemDel
+      summary: Delete a media
+      responses:
+        "200":
+          description: Deleted succesfully
+        "404":
+          description: Media does not exist
+        "409":
+          description: Media is referenced by some other resource
+    put:
+      operationId: mediaItemPut
+      summary: Add or replace a media
+      responses:
+        "200":
+          description: Updated the resource
+        "201":
+          description: A new media has been created
+  /medias/dangling:
+    delete:
+      operationId: mediaDanglingDel
+      summary: Clean unreferenced medias
+      description: Delete all medias that are not members of any playlist
+      responses:
+        "200":
+          description: OK
+  /medias:
+    get:
+      operationId: mediaGet
+      summary: List medias
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["media1", "media2"]
+  /playlists/items/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    get:
+      summary: Playlist info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  medias:
+                    type: array
+                    items:
+                      type: string
+                  active:
+                    type: boolean
+                  window-size:
+                    type: integer
+        "404":
+          description: No such playlist
+    delete:
+      summary: Remove a playlist
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: No such playlist
+  /playlists/items/{id}/active:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    patch:
+      summary: Activate/deactivate a playlist
+      description: This will cause the player to either include or exclude the playlist medias from the currently playing set
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: No such playlist
+  /playlists/items/{id}/medias:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    put:
+      summary: Set the media list
+      description: Set the list of medias that are part of this playlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+    patch:
+      summary: Modify the playlist
+      description: The exact behavior depends on the arguments. This may e.g. add or remove medias into/from a playlist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "append"
+                    location:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "delete"
+                    items:
+                      type: array
+                      items:
+                        type: string
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "rotate"
+                    location:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
+
