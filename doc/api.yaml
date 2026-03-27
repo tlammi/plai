@@ -11,16 +11,16 @@ paths:
         '200':
           description: OK
   /medias/items/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Media ID
     get:
       operationId: mediaItemGet
       summary: Get information about a media instance
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-          description: Media ID
       responses:
         '200':
           description: JSON object describing the media
@@ -41,3 +41,40 @@ paths:
     delete:
       operationId: mediaItemDel
       summary: Delete a media
+      responses:
+        "200":
+          description: Deleted succesfully
+        "404":
+          description: Media does not exist
+        "409":
+          description: Media is referenced by some other resource
+    put:
+      operationId: mediaItemPut
+      summary: Add or replace a media
+      responses:
+        "200":
+          description: Updated the resource
+        "201":
+          description: A new media has been created
+  /medias/dangling:
+    delete:
+      operationId: mediaDanglingDel
+      summary: Clean unreferenced medias
+      description: Delete all medias that are not members of any playlist
+      responses:
+        "200":
+          description: OK
+  /medias:
+    get:
+      operationId: mediaGet
+      summary: List medias
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["media1", "media2"]
