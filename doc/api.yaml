@@ -122,7 +122,7 @@ paths:
         schema:
           type: string
         description: Playlist ID
-    put:
+    patch:
       summary: Activate/deactivate a playlist
       description: This will cause the player to either include or exclude the playlist medias from the currently playing set
       requestBody:
@@ -131,4 +131,68 @@ paths:
           application/json:
             schema:
               type: boolean
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: No such playlist
+  /playlists/items/{id}/medias:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    put:
+      summary: Set the media list
+      description: Set the list of medias that are part of this playlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+    patch:
+      summary: Modify the playlist
+      description: The exact behavior depends on the arguments. This may e.g. add or remove medias into/from a playlist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "append"
+                    location:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "delete"
+                    items:
+                      type: array
+                      items:
+                        type: string
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      const: "rotate"
+                    location:
+                      type: string
+                    items:
+                      type: array
+                      items:
+                        type: string
 
