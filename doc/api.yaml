@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  title: plai API
+  version: 0.0.1
+paths:
+  /_ping:
+    get:
+      operationId: ping
+      summary: Check if the server is up
+      responses:
+        '200':
+          description: OK
+  /medias/items/{id}:
+    get:
+      operationId: mediaItemGet
+      summary: Get information about a media instance
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Media ID
+      responses:
+        '200':
+          description: JSON object describing the media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  size:
+                    type: integer
+                  sha256:
+                    type: string
+                example:
+                  size: 1234
+                  sha256: "deadbeef"
+        "404":
+          description: Media does not exist
+    delete:
+      operationId: mediaItemDel
+      summary: Delete a media
