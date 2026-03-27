@@ -20,7 +20,8 @@ paths:
         description: Media ID
     get:
       operationId: mediaItemGet
-      summary: Get information about a media instance
+      summary: Media info
+      description: Get information about a media instance
       responses:
         '200':
           description: JSON object describing the media
@@ -78,3 +79,56 @@ paths:
                 items:
                   type: string
               example: ["media1", "media2"]
+  /playlists/items/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    get:
+      summary: Playlist info
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  medias:
+                    type: array
+                    items:
+                      type: string
+                  active:
+                    type: boolean
+                  window-size:
+                    type: integer
+        "404":
+          description: No such playlist
+    delete:
+      summary: Remove a playlist
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: No such playlist
+  /playlists/items/{id}/active:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    put:
+      summary: Activate/deactivate a playlist
+      description: This will cause the player to either include or exclude the playlist medias from the currently playing set
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+
