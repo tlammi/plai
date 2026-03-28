@@ -165,17 +165,27 @@ paths:
             schema:
               oneOf:
                 - type: object
+                  description: >
+                    Append media to the playlist. The placement location depends on the "location" parameter.
                   properties:
                     action:
                       type: string
                       const: "append"
                     location:
                       type: string
+                      enum: ["front", "back", "next"]
+                      description: >
+                        Where to place the medias. "front" prepends and "back" appends the items to the list.
+                        "next" places the items to the playlist so they are played next in the sequence. If the playlist
+                        is currently being played this might be in the middle of the list. If the list is not being
+                        played this is the same as "front".
                     items:
                       type: array
                       items:
                         type: string
                 - type: object
+                  description: >
+                    Remove medias from the playlist. Items that are not part of the playlist are ignored.
                   properties:
                     action:
                       type: string
@@ -185,14 +195,42 @@ paths:
                       items:
                         type: string
                 - type: object
+                  description: >
+                    "Rotate" elements in a playlist. This is equivalent to adding N items to the playlist and
+                    removing the N "oldest" items, i.e. items that have been in the list the longest.
                   properties:
                     action:
                       type: string
                       const: "rotate"
                     location:
                       type: string
+                      enum: ["front", "back", "next"]
+                      description: See "append".
                     items:
                       type: array
                       items:
                         type: string
-
+  /playlists/media-relocations:
+    post:
+      summary: Atomic media relocation
+      description: Atomically change set of playlists a media is part of
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                media:
+                  type: string
+                  description: Media ID
+                playlists:
+                  type: array
+                  description: Playlist IDs
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Either non-existent media or playlist
