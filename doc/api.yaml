@@ -210,3 +210,27 @@ paths:
                       type: array
                       items:
                         type: string
+  /playlists/media-relocations:
+    post:
+      summary: Atomic media relocation
+      description: Atomically change set of playlists a media is part of
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                media:
+                  type: string
+                  description: Media ID
+                playlists:
+                  type: array
+                  description: Playlist IDs
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Either non-existent media or playlist
