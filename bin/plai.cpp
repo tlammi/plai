@@ -6,21 +6,12 @@
 namespace plaibin {
 using namespace std::literals;
 
-plai::media::Media mk_media(plai::net::MediaType t, auto data) {
-    using enum plai::net::MediaType;
-    switch (t) {
-        case Video: return plai::media::Video(std::move(data));
-        case Image: return plai::media::Image(std::move(data));
-    }
-    std::unreachable();
-}
-
 plai::media::Media read_media(plai::Store& store,
                               const plai::net::MediaListEntry& entry) {
     const auto& [type, key] = entry;
     auto full_key =
         plai::format("{}/{}", plai::net::serialize_media_type(type), key);
-    return mk_media(type, store.read(full_key));
+    return plai::media::Media(store.read(full_key));
 }
 
 class Playlist final : public plai::play::MediaSrc {

@@ -70,8 +70,7 @@ class Player::Impl {
                 if (!next) {
                     if (!m_opts.wait_media) { m_exiting = true; }
                 } else {
-                    m_decoder.decode(
-                        match(std::move(*next), [](auto v) { return v.data; }));
+                    m_decoder.decode(next->get_media());
                     ++m_queued_medias;
                 }
             }

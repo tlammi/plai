@@ -15,11 +15,10 @@ struct Playlist final : public plai::play::MediaSrc {
         auto ext = plai::to_lower(path.extension());
         if (ext == ".jpeg" || ext == ".jpg" || ext == ".png") {
             std::println("reading image: {}", path.native());
-            return plai::media::Image(plai::fs::read_bin(path));
         } else {
             std::println("reading video: {}", path.native());
-            return plai::media::Video(plai::fs::read_bin(path));
         }
+        return plai::media::Media(plai::fs::read_bin(path));
     }
 };
 
