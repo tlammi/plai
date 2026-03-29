@@ -11,7 +11,7 @@ class Media {
  public:
     constexpr Media() noexcept = default;
 
-    Media(std::vector<uint8_t> v)
+    explicit Media(std::vector<uint8_t> v)
         : m_dat(std::make_shared<std::vector<uint8_t>>(std::move(v))) {}
 
     std::span<uint8_t> data() const noexcept { return *m_dat; }
