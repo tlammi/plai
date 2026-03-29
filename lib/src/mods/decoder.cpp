@@ -18,9 +18,9 @@ class DecoderImpl final : public Decoder {
     void consume(media::Media media) override {
         {
             auto lk = std::lock_guard(m_mut);
-            m_media = std::move(std::get<media::Image>(std::move(media)));
+            m_media = std::move(media);
             PLAI_DEBUG("Decoder consuming media with size {}",
-                       m_media->data.size());
+                       m_media->data().size());
         }
         sched::post(m_exec, memfn(this, &DecoderImpl::launch_decoding));
     }
@@ -39,7 +39,7 @@ class DecoderImpl final : public Decoder {
  private:
     void launch_decoding() {
         auto lk = std::unique_lock(m_mut);
-        m_demux.emplace(m_media->data);
+        m_demux.emplace(m_media->data());
         m_decoded_frames = 0;
         lk.unlock();
         std::tie(m_stream_idx, m_stream) = m_demux->best_video_stream();
@@ -114,7 +114,7 @@ class DecoderImpl final : public Decoder {
                                  memfn(this, &DecoderImpl::decode_step_still) |
                                  sched::task_finish();
 
-    std::optional<media::Image> m_media{};
+    std::optional<media::Media> m_media{};
     static constexpr size_t FRAME_BUFFER_SIZE = 10;
     RingBuffer<Decoded> m_frame_buf{FRAME_BUFFER_SIZE};
     media::HwAccel m_accel{};

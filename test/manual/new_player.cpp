@@ -20,7 +20,7 @@ struct MediaSrc final : public plai::flow::Src<plai::media::Media> {
         idx %= medias.size();
         auto item = medias.at(idx);
         idx = (idx + 1) % medias.size();
-        return plai::media::Image{item};
+        return plai::media::Media{item};
     }
     bool src_ready() override { return true; }
 };
