@@ -105,6 +105,13 @@ paths:
                     type: boolean
                   window-size:
                     type: integer
+                  image-ms:
+                    type: integer
+              example:
+                medias: ["foo", "bar"]
+                active: true
+                window-size: 10
+                image-ms: 500
         "404":
           description: No such playlist
     delete:
@@ -122,7 +129,7 @@ paths:
         schema:
           type: string
         description: Playlist ID
-    patch:
+    post:
       summary: Activate/deactivate a playlist
       description: This will cause the player to either include or exclude the playlist medias from the currently playing set
       requestBody:
@@ -210,6 +217,24 @@ paths:
                       type: array
                       items:
                         type: string
+  /playlists/items/{id}/image-ms:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: Playlist ID
+    post:
+      summary: Set image duration
+      description: Specify how long images are shown in milliseconds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
   /playlists/media-relocations:
     post:
       summary: Atomic media relocation
