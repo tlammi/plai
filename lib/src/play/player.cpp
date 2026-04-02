@@ -70,7 +70,7 @@ class Player::Impl {
                 if (!next) {
                     if (!m_opts.wait_media) { m_exiting = true; }
                 } else {
-                    m_decoder.decode(next->get_media());
+                    m_decoder.decode(next->get_data());
                     ++m_queued_medias;
                 }
             }

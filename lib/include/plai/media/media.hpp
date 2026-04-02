@@ -16,7 +16,11 @@ class Media {
 
     std::span<uint8_t> data() const noexcept { return *m_dat; }
 
-    std::vector<uint8_t> get_media() { return std::move(*m_dat); }
+    std::vector<uint8_t> get_data() { return std::move(*m_dat); }
+
+    constexpr explicit operator bool() const noexcept {
+        return static_cast<bool>(m_dat);
+    }
 
  private:
     std::shared_ptr<std::vector<uint8_t>> m_dat{};
