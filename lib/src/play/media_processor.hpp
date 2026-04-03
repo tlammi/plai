@@ -61,6 +61,11 @@ class MediaProcessor {
          * */
         virtual void new_frame(media::Frame frm) = 0;
 
+        /**
+         * \brief Called to indicate end of a media
+         * */
+        virtual void media_end_reached() = 0;
+
      protected:
         ~Output() = default;
     };
@@ -110,5 +115,6 @@ class MediaProcessor {
     Vec<int> m_dims{};
     media::FrameConverter m_conv{};
     std::jthread m_worker{[&](std::stop_token tok) { work(tok); }};
+    bool m_processing{};
 };
 }  // namespace plai::play

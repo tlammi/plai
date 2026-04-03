@@ -8,16 +8,21 @@
 namespace plai::play {
 
 bool MediaProcessor::consume_next() {
-    PLAI_TRACE("Consuming media processor events");
-    auto frm = m_buf.try_pop();
-    if (!frm) return false;
-    if (!*frm) {
-        frm = m_buf.pop();
-        auto meta = m_meta.pop();
-        m_out->new_media(*std::move(frm), meta.still, meta.fps);
+    if (!m_processing) {
+        PLAI_TRACE("Starting to consume a new media");
+        auto meta = m_meta.try_pop();
+        if (!meta) return false;
+        m_out->new_media(m_buf.pop(), meta->still, meta->fps);
+        m_processing = true;
         return true;
     }
-    m_out->new_frame(*std::move(frm));
+    auto frm = m_buf.pop();
+    if (!frm) {
+        m_processing = false;
+        m_out->media_end_reached();
+        return true;
+    }
+    m_out->new_frame(std::move(frm));
     return true;
 }
 

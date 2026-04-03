@@ -135,14 +135,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
 
     // MediaProcessor::Output
     void new_media(media::Frame frm, bool still, Frac<int> fps) override {
-        if (m_frame_count == 1) {
-            // Showed total of one frame -> the previous media was an image
-            if (!do_image_delay()) { m_exiting = true; }
-        }
-        if (m_frame_count) {
-            PLAI_DEBUG("showed media with {} frames", m_frame_count);
-            m_frame_count = 1;
-        }
+        m_frame_count = 1;
         const auto was_still = std::exchange(m_still, still);
         if (m_prev_frame) {
             if (!do_blend(was_still, m_still, frm)) return;
@@ -162,6 +155,15 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         std::swap(m_prev_frame, frm);
         render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);
         m_front->render_current();
+    }
+
+    // MediaProcessor::Output
+    void media_end_reached() override {
+        if (m_frame_count == 1) {
+            // Showed total of one frame -> the previous media was an image
+            if (!do_image_delay()) { m_exiting = true; }
+        }
+        PLAI_DEBUG("showed media with {} frames", m_frame_count);
     }
 
     void render_watermarks(
