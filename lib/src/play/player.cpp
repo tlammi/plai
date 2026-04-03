@@ -99,11 +99,15 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
 
     // MediaProcessor::Output
     void new_media(media::Frame frm, bool still, Frac<int> fps) override {
+        assert(frm && "empty frame received by new_media()");
         poll_front();
         m_frame_count = 1;
         const auto was_still = std::exchange(m_still, still);
         if (m_prev_frame) {
             if (!do_blend(was_still, m_still, frm)) return;
+        } else {
+            m_front_text->update(frm);
+            m_front_text->render_to(IMG_TARGET);
         }
         std::swap(m_prev_frame, frm);
         render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);

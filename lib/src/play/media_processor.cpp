@@ -38,8 +38,6 @@ void MediaProcessor::work(std::stop_token st) {
             bool still = stream.is_still_image();
             PLAI_TRACE("Publishing new media meta");
             m_meta.push({.fps = stream.fps(), .still = still});
-            // Empty frame to indicate beginning of a new media
-            m_buf.push({});
             auto decoder = media::Decoder(stream, m_accel);
             auto pkt = media::Packet();
             auto frm = media::Frame();
@@ -74,6 +72,7 @@ void MediaProcessor::work(std::stop_token st) {
                 }
                 PLAI_DEBUG("decoded total {} frames", decoded_frames);
             }
+            m_buf.push({});
         } catch (const Cancelled&) {}
     }
 }
