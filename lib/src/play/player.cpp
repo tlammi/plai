@@ -56,8 +56,6 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     }
 
     void run() {
-        // auto rlimit = RateLimiter(Duration::zero());
-        //  uint32_t frame_count = 0;
         while (true) {
             if (!poll_front()) return;
             {
@@ -75,47 +73,13 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
             }
             // consume_next() goes to various callbacks inherited from
             // MediaProcessor::Output
-            if (!m_processor.consume_next() && m_exiting) return;
-
-#if 0
-            if (m_queued_medias) {
-                if (!m_stream) {
-                    m_stream = m_decoder.frame_stream();
-                    m_stream_iter = m_stream->begin();
-                    const auto was_still =
-                        std::exchange(m_still, m_stream->still());
-                    if (m_prev_frame) {
-                        if (!do_blend(was_still, m_still)) return;
-                    }
-                    rlimit = rate_limiter();
-                } else {
-                    std::swap(m_prev_frame, *m_stream_iter);
-                    ++m_stream_iter;
-                }
-                m_front->render_clear();
-                if (m_stream_iter != m_stream->end()) {
-                    auto& frm = *m_stream_iter;
-                    m_front_text->update(frm);
-                    m_front_text->render_to(IMG_TARGET);
-                    ++frame_count;
-                } else {
-                    PLAI_DEBUG("showed media with {} frames", frame_count);
-                    if (frame_count == 1) {
-                        if (!do_image_delay()) return;
-                    }
-                    frame_count = 0;
-                    --m_queued_medias;
-                    m_stream.reset();
-                    continue;
-                }
-                render_watermarks(m_still ? std::numeric_limits<uint8_t>::max()
-                                          : 0);
-                m_front->render_current();
-                rlimit();
+            auto consumed = m_processor.consume_next();
+            if (!consumed) {
+                if (m_exiting) return;
+                std::this_thread::sleep_for(10ms);
                 continue;
             }
-#endif
-            std::this_thread::sleep_for(10ms);
+            m_rlimit();
         }
     }
 
@@ -135,6 +99,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
 
     // MediaProcessor::Output
     void new_media(media::Frame frm, bool still, Frac<int> fps) override {
+        poll_front();
         m_frame_count = 1;
         const auto was_still = std::exchange(m_still, still);
         if (m_prev_frame) {
@@ -143,12 +108,12 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         std::swap(m_prev_frame, frm);
         render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);
         m_front->render_current();
-        // TODO: add rate limiter
-        // rlimit();
+        m_rlimit = rate_limiter(fps);
     }
 
     // MediaProcessor::Output
     void new_frame(media::Frame frm) override {
+        poll_front();
         m_front_text->update(frm);
         m_front_text->render_to(IMG_TARGET);
         ++m_frame_count;
@@ -159,6 +124,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
 
     // MediaProcessor::Output
     void media_end_reached() override {
+        poll_front();
         if (m_frame_count == 1) {
             // Showed total of one frame -> the previous media was an image
             if (!do_image_delay()) { m_exiting = true; }
@@ -176,19 +142,17 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
             text->render_to(watermark.target);
         }
     }
-    // TODO: Implement
-#if 0
-    RateLimiter rate_limiter() {
-        if (m_opts.unlimited_fps) return RateLimiter(Duration::zero());
-        assert(m_stream);
+
+    RateLimiter rate_limiter(Frac<int> fps) {
+        if (m_opts.unlimited_fps || !fps.num())
+            return RateLimiter(Duration::zero());
         static constexpr auto micro = 1'000'000;
-        auto uspf = m_stream->fps().reciprocal() * micro;
+        auto uspf = fps.reciprocal() * micro;
         auto uspf_int = static_cast<uint64_t>(uspf.num()) /
                         static_cast<uint64_t>(uspf.den());
         auto dur = std::chrono::microseconds(uspf_int);
         return RateLimiter(dur);
     }
-#endif
 
     bool do_blend(bool was_still, bool is_still, const media::Frame& frm) {
         PLAI_TRACE("blending");
@@ -287,6 +251,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     std::vector<std::unique_ptr<Texture>> m_watermark_textures{};
     std::unique_ptr<Texture> m_front_text{m_front->texture()};
     std::unique_ptr<Texture> m_back_text{m_front->texture()};
+    RateLimiter m_rlimit{Duration::zero()};
     size_t m_frame_count{};
     bool m_exiting{false};
     bool m_still{false};

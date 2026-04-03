@@ -12,7 +12,8 @@ bool MediaProcessor::consume_next() {
         PLAI_TRACE("Starting to consume a new media");
         auto meta = m_meta.try_pop();
         if (!meta) return false;
-        m_out->new_media(m_buf.pop(), meta->still, meta->fps);
+        auto fps = meta->still ? Frac<int>{} : meta->fps;
+        m_out->new_media(m_buf.pop(), meta->still, fps);
         m_processing = true;
         return true;
     }
