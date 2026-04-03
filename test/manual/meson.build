@@ -10,7 +10,7 @@ tests = files(
   'watermark_player.cpp',
   'store.cpp',
   'periodic_task.cpp',
-  'new_player.cpp',
+  #'new_player.cpp',
 )
 
 fs = import('fs')

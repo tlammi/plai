@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "alpha_calc.hpp"
+#include "media_processor.hpp"
 
 namespace plai::play {
 namespace {
@@ -36,15 +37,15 @@ enum class State {
     Done,            // All done, about to return
 };
 }  // namespace
-class Player::Impl {
+class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
  public:
-    static constexpr auto MAX_QUEUED_MEDIAS = std::size_t(5);
-
     Impl(Frontend* front, MediaSrc* media_src, PlayerOpts opts)
         : m_front(front),
           m_src(media_src),
           m_opts(std::move(opts)),
-          m_decoder(make_hwaccel(m_opts.accel)) {
+          m_processor(
+              *this, *this,
+              MediaProcessor::Opts{.hwaccel = make_hwaccel(m_opts.accel)}) {
         m_watermark_textures.reserve(m_opts.watermarks.size());
         for (size_t i = 0; i < m_opts.watermarks.size(); ++i) {
             m_watermark_textures.push_back(m_front->texture());
@@ -52,28 +53,32 @@ class Player::Impl {
         }
         // TODO: inspect why this is needed, without this decoding largish JPEG
         // images may (and does so maybe 9/10 times) crash the program.
-        m_decoder.set_dims({1920, 1080});
+        m_processor.set_dims({1920, 1080});
     }
 
     void run() {
-        auto rlimit = RateLimiter(Duration::zero());
-        uint32_t frame_count = 0;
+        // auto rlimit = RateLimiter(Duration::zero());
+        //  uint32_t frame_count = 0;
         while (true) {
             if (!poll_front()) return;
-            if (m_clear_media_queue.exchange(false)) {
-                m_decoder.clear_media_queue();
-                m_queued_medias = 0;
-            }
-            if (!m_queued_medias && m_exiting) return;
-            if (m_queued_medias < MAX_QUEUED_MEDIAS) {
-                auto next = m_src->next_media();
-                if (!next) {
-                    if (!m_opts.wait_media) { m_exiting = true; }
-                } else {
-                    m_decoder.decode(next->get_data());
-                    ++m_queued_medias;
+            {
+                auto media_lock = std::unique_lock(m_media_mut);
+                if (!m_enqueued_media) {
+                    auto next = m_src->next_media();
+                    if (!next) {
+                        if (!m_opts.wait_media) { m_exiting = true; }
+                    } else {
+                        m_enqueued_media = *std::move(next);
+                        media_lock.unlock();
+                        m_media_sem.release();
+                    }
                 }
             }
+            // consume_next() goes to various callbacks inherited from
+            // MediaProcessor::Output
+            if (!m_processor.consume_next() && m_exiting) return;
+
+#if 0
             if (m_queued_medias) {
                 if (!m_stream) {
                     m_stream = m_decoder.frame_stream();
@@ -110,15 +115,56 @@ class Player::Impl {
                 rlimit();
                 continue;
             }
+#endif
             std::this_thread::sleep_for(10ms);
         }
     }
 
     void stop() { m_front->stop(); }
 
-    void clear_media_queue() { m_clear_media_queue = true; }
+    void clear_media_queue() {
+        PLAI_WARN("clear_media_queue has been deprecated");
+    }
 
  private:
+    // MediaProcessor::Input
+    media::Media next_media() override {
+        m_media_sem.acquire();
+        auto lk = std::lock_guard(m_media_mut);
+        return std::exchange(m_enqueued_media, {});
+    }
+
+    // MediaProcessor::Output
+    void new_media(media::Frame frm, bool still, Frac<int> fps) override {
+        if (m_frame_count == 1) {
+            // Showed total of one frame -> the previous media was an image
+            if (!do_image_delay()) { m_exiting = true; }
+        }
+        if (m_frame_count) {
+            PLAI_DEBUG("showed media with {} frames", m_frame_count);
+            m_frame_count = 1;
+        }
+        const auto was_still = std::exchange(m_still, still);
+        if (m_prev_frame) {
+            if (!do_blend(was_still, m_still, frm)) return;
+        }
+        std::swap(m_prev_frame, frm);
+        render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);
+        m_front->render_current();
+        // TODO: add rate limiter
+        // rlimit();
+    }
+
+    // MediaProcessor::Output
+    void new_frame(media::Frame frm) override {
+        m_front_text->update(frm);
+        m_front_text->render_to(IMG_TARGET);
+        ++m_frame_count;
+        std::swap(m_prev_frame, frm);
+        render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);
+        m_front->render_current();
+    }
+
     void render_watermarks(
         uint8_t alpha = std::numeric_limits<uint8_t>::max()) {
         for (size_t i = 0; i < m_watermark_textures.size(); ++i) {
@@ -129,7 +175,8 @@ class Player::Impl {
             text->render_to(watermark.target);
         }
     }
-
+    // TODO: Implement
+#if 0
     RateLimiter rate_limiter() {
         if (m_opts.unlimited_fps) return RateLimiter(Duration::zero());
         assert(m_stream);
@@ -140,8 +187,9 @@ class Player::Impl {
         auto dur = std::chrono::microseconds(uspf_int);
         return RateLimiter(dur);
     }
+#endif
 
-    bool do_blend(bool was_still, bool is_still) {
+    bool do_blend(bool was_still, bool is_still, const media::Frame& frm) {
         PLAI_TRACE("blending");
         static constexpr auto max_alpha = std::numeric_limits<uint8_t>::max();
         static constexpr auto watermark_blend = 500ms;
@@ -174,7 +222,7 @@ class Player::Impl {
             m_back_text->update(m_prev_frame);
             m_back_text->render_to(IMG_TARGET);
             m_front_text->alpha(alpha);
-            m_front_text->update(*m_stream_iter);
+            m_front_text->update(frm);
             m_front_text->render_to(IMG_TARGET);
             render_watermarks(watermark_static_alpha);
             m_front->render_current();
@@ -186,7 +234,7 @@ class Player::Impl {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
             auto res = poll_loop([&] {
                 m_front->render_clear();
-                m_front_text->update(*m_stream_iter);
+                m_front_text->update(frm);
                 m_front_text->render_to(IMG_TARGET);
                 auto alpha = watermark_alpha_calc();
                 render_watermarks(max_alpha - alpha);
@@ -230,17 +278,17 @@ class Player::Impl {
     Frontend* m_front;
     MediaSrc* m_src;
     PlayerOpts m_opts;
-    media::DecodingPipeline m_decoder{};
-    std::optional<media::DecodingStream> m_stream{};
-    media::DecodingStream::Iter m_stream_iter{};
+    MediaProcessor m_processor;
     media::Frame m_prev_frame{};
+    std::mutex m_media_mut{};
+    std::binary_semaphore m_media_sem{0};
+    media::Media m_enqueued_media{};
     std::vector<std::unique_ptr<Texture>> m_watermark_textures{};
     std::unique_ptr<Texture> m_front_text{m_front->texture()};
     std::unique_ptr<Texture> m_back_text{m_front->texture()};
-    size_t m_queued_medias{0};
+    size_t m_frame_count{};
     bool m_exiting{false};
     bool m_still{false};
-    std::atomic_bool m_clear_media_queue{false};
 };
 
 Player::Player(Frontend* front, MediaSrc* media_src, PlayerOpts opts)

@@ -21,4 +21,6 @@ class ValueError : public Exception {
  private:
 };
 
+class Cancelled : public Exception {};
+
 }  // namespace plai
