@@ -56,34 +56,44 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     }
 
     void run() {
-        while (true) {
-            if (!poll_front()) return;
-            {
-                auto media_lock = std::unique_lock(m_media_mut);
-                if (!m_enqueued_media) {
-                    auto next = m_src->next_media();
-                    if (!next) {
-                        if (!m_opts.wait_media) { m_exiting = true; }
-                    } else {
-                        m_enqueued_media = *std::move(next);
-                        media_lock.unlock();
-                        m_media_cv.notify_one();
+        try {
+            while (true) {
+                poll_front();
+                {
+                    auto media_lock = std::unique_lock(m_media_mut);
+                    if (!m_enqueued_media) {
+                        auto next = m_src->next_media();
+                        if (!next) {
+                            if (!m_opts.wait_media) { m_exiting = true; }
+                        } else {
+                            m_enqueued_media = *std::move(next);
+                            media_lock.unlock();
+                            m_media_cv.notify_one();
+                        }
                     }
                 }
+                // consume_next() goes to various callbacks inherited from
+                // MediaProcessor::Output
+                auto consumed = m_processor.consume_next();
+                if (!consumed) {
+                    if (m_exiting) return;
+                    std::this_thread::sleep_for(10ms);
+                    continue;
+                }
+                m_rlimit();
             }
-            // consume_next() goes to various callbacks inherited from
-            // MediaProcessor::Output
-            auto consumed = m_processor.consume_next();
-            if (!consumed) {
-                if (m_exiting) return;
-                std::this_thread::sleep_for(10ms);
-                continue;
-            }
-            m_rlimit();
+        } catch (const Cancelled&) {
+            PLAI_TRACE("Cancellation caught");
+            m_processor.stop();
+            m_exiting = true;
+            m_media_cv.notify_one();
         }
     }
 
-    void stop() { m_front->stop(); }
+    void stop() {
+        PLAI_DEBUG("stopping player");
+        m_front->stop();
+    }
 
     void clear_media_queue() {
         PLAI_WARN("clear_media_queue has been deprecated");
@@ -93,7 +103,8 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     // MediaProcessor::Input
     media::Media next_media() override {
         auto lk = std::unique_lock(m_media_mut);
-        m_media_cv.wait(lk, [&] { return m_enqueued_media; });
+        m_media_cv.wait(lk, [&] { return m_enqueued_media || m_exiting; });
+        if (m_exiting) throw Cancelled();
         return std::exchange(m_enqueued_media, {});
     }
 
@@ -104,7 +115,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         m_frame_count = 1;
         const auto was_still = std::exchange(m_still, still);
         if (m_prev_frame) {
-            if (!do_blend(was_still, m_still, frm)) return;
+            do_blend(was_still, m_still, frm);
         } else {
             m_front_text->update(frm);
             m_front_text->render_to(IMG_TARGET);
@@ -131,7 +142,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         poll_front();
         if (m_frame_count == 1) {
             // Showed total of one frame -> the previous media was an image
-            if (!do_image_delay()) { m_exiting = true; }
+            do_image_delay();
         }
         PLAI_DEBUG("showed media with {} frames", m_frame_count);
     }
@@ -158,7 +169,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         return RateLimiter(dur);
     }
 
-    bool do_blend(bool was_still, bool is_still, const media::Frame& frm) {
+    void do_blend(bool was_still, bool is_still, const media::Frame& frm) {
         PLAI_TRACE("blending");
         static constexpr auto max_alpha = std::numeric_limits<uint8_t>::max();
         static constexpr auto watermark_blend = 500ms;
@@ -171,7 +182,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         m_back_text->blend_mode(BlendMode::Blend);
         if (!was_still && is_still) {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
-            auto res = poll_loop([&] {
+            poll_loop([&] {
                 m_front->render_clear();
                 m_back_text->update(m_prev_frame);
                 auto alpha = watermark_alpha_calc();
@@ -179,12 +190,11 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
                 m_front->render_current();
                 return alpha == max_alpha;
             });
-            if (!res) return false;
         }
         const auto watermark_static_alpha =
             is_still || was_still ? max_alpha : 0;
         auto alpha_calc = AlphaCalc(m_opts.blend_dur);
-        auto res = poll_loop([&] {
+        poll_loop([&] {
             m_front->render_clear();
             auto alpha = alpha_calc();
             m_back_text->alpha(max_alpha - alpha);
@@ -197,11 +207,10 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
             m_front->render_current();
             return alpha == max_alpha;
         });
-        if (!res) return false;
 
         if (was_still && !is_still) {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
-            auto res = poll_loop([&] {
+            poll_loop([&] {
                 m_front->render_clear();
                 m_front_text->update(frm);
                 m_front_text->render_to(IMG_TARGET);
@@ -210,37 +219,37 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
                 m_front->render_current();
                 return alpha == max_alpha;
             });
-            if (!res) return res;
         }
-        return true;
     }
 
-    bool do_image_delay() {
+    void do_image_delay() {
         PLAI_TRACE("showing image");
         auto start = Clock::now();
         auto end = start + m_opts.image_dur;
 
         while (Clock::now() < end) {
-            if (!poll_front()) return false;
+            poll_front();
             std::this_thread::sleep_for(100ms);
         }
         PLAI_TRACE("image showed");
-        return true;
     }
 
-    bool poll_front() {
+    void poll_front() {
         while (true) {
             auto evt = m_front->poll_event();
-            if (!evt) return true;
-            if (std::holds_alternative<Quit>(*evt)) return false;
+            if (!evt) return;
+            if (!m_exiting && std::holds_alternative<Quit>(*evt)) {
+                PLAI_DEBUG("Received quit command from frontend");
+                throw Cancelled();
+            }
         }
     }
 
     template <class F>
-    bool poll_loop(F f) {
+    void poll_loop(F f) {
         while (true) {
-            if (!poll_front()) return false;
-            if (f()) return true;
+            poll_front();
+            if (f()) return;
         }
     }
 

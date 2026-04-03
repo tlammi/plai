@@ -17,14 +17,23 @@ bool MediaProcessor::consume_next() {
         m_processing = true;
         return true;
     }
-    auto frm = m_buf.pop();
-    if (!frm) {
+    auto frm = m_buf.try_pop();
+    if (!frm) return false;
+    if (!*frm) {
         m_processing = false;
         m_out->media_end_reached();
         return true;
     }
-    m_out->new_frame(std::move(frm));
+    m_out->new_frame(*std::move(frm));
     return true;
+}
+
+void MediaProcessor::stop() {
+    PLAI_DEBUG("requesting processor stop");
+    m_worker.request_stop();
+    // Discard stuff so push() does not block
+    while (m_worker.joinable() && m_buf.try_pop());
+    m_worker.join();
 }
 
 void MediaProcessor::work(std::stop_token st) {
@@ -43,7 +52,8 @@ void MediaProcessor::work(std::stop_token st) {
             auto frm = media::Frame();
             if (stream.is_still_image()) {
                 auto real_frm = media::Frame();
-                while (!st.stop_requested() && demux >> pkt) {
+                while (demux >> pkt) {
+                    if (st.stop_requested()) return;
                     if (pkt.stream_index() != stream_idx) continue;
                     decoder << pkt;
                     if (!(decoder >> frm)) continue;
@@ -55,7 +65,8 @@ void MediaProcessor::work(std::stop_token st) {
                 m_buf.push(m_conv(input_dims, std::move(real_frm)));
             } else {
                 size_t decoded_frames = 0;
-                while (!st.stop_requested() && demux >> pkt) {
+                while (demux >> pkt) {
+                    if (st.stop_requested()) return;
                     if (pkt.stream_index() != stream_idx) continue;
                     decoder << pkt;
                     if (!(decoder >> frm)) continue;

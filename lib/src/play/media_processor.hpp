@@ -99,6 +99,8 @@ class MediaProcessor {
         m_dims = dims;
     }
 
+    void stop();
+
  private:
     struct Meta {
         Frac<int> fps{};
