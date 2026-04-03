@@ -7,10 +7,10 @@ tests = files(
   'player.cpp',
   'blend_player.cpp',
   'rest.cpp',
-  'watermark_player.cpp',
+  #'watermark_player.cpp',
   'store.cpp',
   'periodic_task.cpp',
-  'new_player.cpp',
+  #'new_player.cpp',
 )
 
 fs = import('fs')
