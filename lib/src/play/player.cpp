@@ -67,7 +67,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
                     } else {
                         m_enqueued_media = *std::move(next);
                         media_lock.unlock();
-                        m_media_sem.release();
+                        m_media_cv.notify_one();
                     }
                 }
             }
@@ -92,8 +92,8 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
  private:
     // MediaProcessor::Input
     media::Media next_media() override {
-        m_media_sem.acquire();
-        auto lk = std::lock_guard(m_media_mut);
+        auto lk = std::unique_lock(m_media_mut);
+        m_media_cv.wait(lk, [&] { return m_enqueued_media; });
         return std::exchange(m_enqueued_media, {});
     }
 
@@ -250,7 +250,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     MediaProcessor m_processor;
     media::Frame m_prev_frame{};
     std::mutex m_media_mut{};
-    std::binary_semaphore m_media_sem{0};
+    std::condition_variable m_media_cv{};
     media::Media m_enqueued_media{};
     std::vector<std::unique_ptr<Texture>> m_watermark_textures{};
     std::unique_ptr<Texture> m_front_text{m_front->texture()};
