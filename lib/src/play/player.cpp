@@ -1,5 +1,4 @@
 #include <plai/logs/logs.hpp>
-#include <plai/media/decoding_pipeline.hpp>
 #include <plai/play/player.hpp>
 #include <plai/util/match.hpp>
 #include <variant>
