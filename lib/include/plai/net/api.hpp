@@ -11,7 +11,6 @@ namespace plai::net {
 
 enum class DeleteResult {
     Success,
-    Scheduled,
     Failure,
 };
 
