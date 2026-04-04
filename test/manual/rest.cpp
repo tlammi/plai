@@ -7,7 +7,6 @@
 
 using plai::Store;
 using plai::net::DeleteResult;
-using plai::net::MediaListEntry;
 using plai::net::MediaMeta;
 
 class Api final : public plai::net::ApiV1 {
@@ -48,15 +47,15 @@ class Api final : public plai::net::ApiV1 {
         return DeleteResult::Success;
     }
 
-    std::vector<MediaListEntry> get_medias() override {
+    std::vector<std::string> get_medias() override {
         auto entries = m_store->list();
-        std::vector<MediaListEntry> out{};
+        std::vector<std::string> out{};
         out.reserve(entries.size());
         for (const auto& e : entries) { out.emplace_back(e); }
         return out;
     }
 
-    void play(const std::vector<MediaListEntry>& medias, bool replay) override {
+    void play(const std::vector<std::string>& medias, bool replay) override {
         (void)medias;
         (void)replay;
         std::println(stderr, "play called");

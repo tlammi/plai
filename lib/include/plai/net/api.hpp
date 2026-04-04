@@ -20,10 +20,6 @@ struct MediaMeta {
     crypto::Sha256 digest;
 };
 
-struct MediaListEntry {
-    std::string key;
-};
-
 /**
  * \brief API implementation
  *
@@ -62,7 +58,7 @@ class ApiV1 : public Virtual {
      *
      * \return List of medias
      * */
-    virtual std::vector<MediaListEntry> get_medias() = 0;
+    virtual std::vector<std::string> get_medias() = 0;
 
     /**
      * \brief Play medias
@@ -70,8 +66,7 @@ class ApiV1 : public Virtual {
      * \param medias List of medias to play
      * */
     // TODO: Should this have a return value to indicate success/failure?
-    virtual void play(const std::vector<MediaListEntry>& medias,
-                      bool replay) = 0;
+    virtual void play(const std::vector<std::string>& medias, bool replay) = 0;
 };
 
 /**
@@ -92,7 +87,7 @@ class DefaultApi : public ApiV1 {
 
     DeleteResult delete_media(std::string_view key) override;
 
-    std::vector<MediaListEntry> get_medias() override;
+    std::vector<std::string> get_medias() override;
 
  private:
     Store* m_store;
