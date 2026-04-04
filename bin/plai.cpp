@@ -8,10 +8,7 @@ using namespace std::literals;
 
 plai::media::Media read_media(plai::Store& store,
                               const plai::net::MediaListEntry& entry) {
-    const auto& [type, key] = entry;
-    auto full_key =
-        plai::format("{}/{}", plai::net::serialize_media_type(type), key);
-    return plai::media::Media(store.read(full_key));
+    return plai::media::Media(store.read(entry.key));
 }
 
 class Playlist final : public plai::play::MediaSrc {
