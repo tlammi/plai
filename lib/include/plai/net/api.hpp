@@ -32,7 +32,6 @@ constexpr std::string_view serialize_media_type(MediaType t) {
 
 enum class DeleteResult {
     Success,
-    Scheduled,
     Failure,
 };
 
