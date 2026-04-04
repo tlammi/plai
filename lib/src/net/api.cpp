@@ -39,7 +39,7 @@ MediaMeta DefaultApi::media_get(std::string_view key) {
     };
 }
 
-void DefaultApi::put_media(
+void DefaultApi::media_put(
     std::string_view key,
     std::function<std::optional<std::span<const uint8_t>>()> body) {
     std::vector<uint8_t> buf{};
@@ -53,7 +53,7 @@ void DefaultApi::put_media(
     m_store->store(s, buf);
 }
 
-DeleteResult DefaultApi::delete_media(std::string_view key) {
+DeleteResult DefaultApi::media_delete(std::string_view key) {
     auto s = std::string(key);
     PLAI_INFO("deleting media {}", s);
     // TODO: cannot get info whether was deleted. Do something
@@ -96,12 +96,12 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                                     crypto::hex_str(meta.digest), meta.size)};
                     }
                     if (req.method() == http::METHOD_PUT) {
-                        api->put_media(name,
+                        api->media_put(name,
                                        [&]() { return req.data_chunked(); });
                         return {.body = "done", .status_code = PLAI_HTTP(200)};
                     }
                     if (req.method() == http::METHOD_DELETE) {
-                        auto res = api->delete_media(name);
+                        auto res = api->media_delete(name);
 
                         using enum net::DeleteResult;
                         switch (res) {
