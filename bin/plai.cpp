@@ -6,22 +6,21 @@
 namespace plaibin {
 using namespace std::literals;
 
-plai::media::Media read_media(plai::Store& store,
-                              const plai::net::MediaListEntry& entry) {
-    return plai::media::Media(store.read(entry.key));
+plai::media::Media read_media(plai::Store& store, const std::string& entry) {
+    return plai::media::Media(store.read(entry));
 }
 
 class Playlist final : public plai::play::MediaSrc {
     std::mutex m_mut{};
     plai::Store* m_store;
-    std::vector<plai::net::MediaListEntry> m_keys{};
+    std::vector<std::string> m_keys{};
     size_t m_idx{0};
     bool m_repeat{true};
 
  public:
     Playlist(plai::Store* store) : m_store(store) { assert(store); }
 
-    bool set_entries(std::vector<plai::net::MediaListEntry> entries) {
+    bool set_entries(std::vector<std::string> entries) {
         auto lk = std::lock_guard(m_mut);
         m_keys = std::move(entries);
         // TODO: Check that entries actually exist and lock them
@@ -55,8 +54,7 @@ class ApiImpl : public plai::net::DefaultApi {
         : Parent(store), m_playlist(playlist), m_player(player) {
         assert(playlist);
     }
-    void play(const std::vector<plai::net::MediaListEntry>& medias,
-              bool replay) override {
+    void play(const std::vector<std::string>& medias, bool replay) override {
         m_playlist->set_entries(medias);
         m_playlist->set_repeat(replay);
         m_player->clear_media_queue();

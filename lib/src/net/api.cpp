@@ -7,12 +7,10 @@
 
 namespace plai::net {
 namespace {
-std::string to_str(const MediaListEntry& v) {
-    return plai::format(R"({{"key": "{}"}})", v.key);
-}
-std::string to_str(const std::vector<MediaListEntry>& v) {
+
+std::string to_str(const std::vector<std::string>& v) {
     std::string res = {"["};
-    for (const auto& e : v) { res += to_str(e) + ","; }
+    for (const auto& e : v) { res += '"' + e + "\","; }
     if (res.size() > 1)
         res.back() = ']';
     else
@@ -20,13 +18,6 @@ std::string to_str(const std::vector<MediaListEntry>& v) {
     return res;
 }
 
-std::optional<std::vector<MediaListEntry>> parse_media_list(
-    std::span<const std::string> media_list) {
-    auto out = std::vector<MediaListEntry>();
-    out.reserve(media_list.size());
-    for (const auto& str : media_list) { out.push_back({.key = str}); }
-    return out;
-}
 }  // namespace
 class ServerImpl final : public ApiServer {
  public:
@@ -71,10 +62,10 @@ DeleteResult DefaultApi::delete_media(std::string_view key) {
     return DeleteResult::Success;
 }
 
-std::vector<MediaListEntry> DefaultApi::get_medias() {
+std::vector<std::string> DefaultApi::get_medias() {
     PLAI_TRACE("listing medias");
     auto entries = m_store->list();
-    std::vector<MediaListEntry> out{};
+    std::vector<std::string> out{};
     out.reserve(entries.size());
     for (const auto& e : entries) { out.emplace_back(e); }
     return out;
@@ -143,11 +134,6 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                              return {.body = "Invalid playlist",
                                      .status_code = PLAI_HTTP(400)};
                          }
-                         auto list = parse_media_list(*parsed);
-                         if (!list) {
-                             return {.body = "Invalid playlist entry",
-                                     .status_code = PLAI_HTTP(400)};
-                         }
                          bool replay = true;
                          const auto& query_params = req.query_params();
                          if (query_params.contains("replay")) {
@@ -162,7 +148,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                                          .status_code = PLAI_HTTP(400)};
                              }
                          }
-                         api->play(*list, replay);
+                         api->play(*parsed, replay);
                          return {.body = "OK", .status_code = PLAI_HTTP(200)};
                      })
             .commit());
