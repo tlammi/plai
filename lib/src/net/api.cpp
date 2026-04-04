@@ -30,7 +30,7 @@ class ServerImpl final : public ApiServer {
     http::Server m_srv;
 };
 
-MediaMeta DefaultApi::get_media(std::string_view key) {
+MediaMeta DefaultApi::media_get(std::string_view key) {
     auto s = std::string(key);
     auto res = m_store->inspect(s);
     return {
@@ -90,7 +90,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                 [api](const http::Request& req) -> http::Response {
                     auto name = req.target().path_params().at("name");
                     if (req.method() == http::METHOD_GET) {
-                        auto meta = api->get_media(name);
+                        auto meta = api->media_get(name);
                         return {.body = plai::format(
                                     R"({{"digest":"sha256:{}","size":{}}})",
                                     crypto::hex_str(meta.digest), meta.size)};

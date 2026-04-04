@@ -15,7 +15,7 @@ class Api final : public plai::net::ApiV1 {
 
     void ping() override {}
 
-    MediaMeta get_media(std::string_view key) override {
+    MediaMeta media_get(std::string_view key) override {
         auto s = std::string(key);
         auto res = m_store->inspect(s);
         return {

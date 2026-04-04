@@ -31,7 +31,7 @@ class ApiV1 : public Virtual {
     // /_ping
     virtual void ping() {}
 
-    virtual MediaMeta get_media(std::string_view key) = 0;
+    virtual MediaMeta media_get(std::string_view key) = 0;
 
     /**
      * \brief Media upload
@@ -78,7 +78,7 @@ class DefaultApi : public ApiV1 {
  public:
     explicit DefaultApi(Store* store) : m_store(store) { assert(store); }
 
-    MediaMeta get_media(std::string_view key) override;
+    MediaMeta media_get(std::string_view key) override;
 
     void put_media(
         std::string_view key,
