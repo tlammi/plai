@@ -36,7 +36,7 @@ class ApiV1 : public Virtual {
     /**
      * \brief Media upload
      * */
-    virtual void put_media(
+    virtual void media_put(
         std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body) = 0;
 
@@ -48,7 +48,7 @@ class ApiV1 : public Virtual {
      *    Scheduled - marked for deletion and will be done later
      *    Failed - does not exist
      * */
-    virtual DeleteResult delete_media(std::string_view key) = 0;
+    virtual DeleteResult media_delete(std::string_view key) = 0;
 
     /**
      * \brief List all get_medias
@@ -80,11 +80,11 @@ class DefaultApi : public ApiV1 {
 
     MediaMeta media_get(std::string_view key) override;
 
-    void put_media(
+    void media_put(
         std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body) override;
 
-    DeleteResult delete_media(std::string_view key) override;
+    DeleteResult media_delete(std::string_view key) override;
 
     std::vector<std::string> get_medias() override;
 

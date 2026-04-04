@@ -24,7 +24,7 @@ class Api final : public plai::net::ApiV1 {
         };
     }
 
-    void put_media(std::string_view key,
+    void media_put(std::string_view key,
                    std::function<std::optional<std::span<const uint8_t>>()>
                        body) override {
         std::vector<uint8_t> buf{};
@@ -39,7 +39,7 @@ class Api final : public plai::net::ApiV1 {
         m_store->store(s, buf);
     }
 
-    DeleteResult delete_media(std::string_view key) override {
+    DeleteResult media_delete(std::string_view key) override {
         auto s = std::string(key);
         std::println(stderr, "deleting {}", s);
         // TODO: cannot get info whether was deleted. Do something
