@@ -9,7 +9,6 @@ using plai::Store;
 using plai::net::DeleteResult;
 using plai::net::MediaListEntry;
 using plai::net::MediaMeta;
-using plai::net::MediaType;
 
 class Api final : public plai::net::ApiV1 {
  public:
@@ -17,9 +16,8 @@ class Api final : public plai::net::ApiV1 {
 
     void ping() override {}
 
-    MediaMeta get_media(MediaType type, std::string_view key) override {
-        auto s =
-            std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    MediaMeta get_media(std::string_view key) override {
+        auto s = std::string(key);
         auto res = m_store->inspect(s);
         return {
             .size = res->bytes,
@@ -27,7 +25,7 @@ class Api final : public plai::net::ApiV1 {
         };
     }
 
-    void put_media(MediaType type, std::string_view key,
+    void put_media(std::string_view key,
                    std::function<std::optional<std::span<const uint8_t>>()>
                        body) override {
         std::vector<uint8_t> buf{};
@@ -37,34 +35,24 @@ class Api final : public plai::net::ApiV1 {
             buf.insert(buf.end(), r->begin(), r->end());
         }
         std::println(stderr, "received total {} bytes", buf.size());
-        auto s =
-            std::format("{}/{}", plai::net::serialize_media_type(type), key);
+        auto s = std::string(key);
         std::println(stderr, "storing as {}", s);
         m_store->store(s, buf);
     }
 
-    DeleteResult delete_media(MediaType type, std::string_view key) override {
-        auto s =
-            std::format("{}/{}", plai::net::serialize_media_type(type), key);
+    DeleteResult delete_media(std::string_view key) override {
+        auto s = std::string(key);
         std::println(stderr, "deleting {}", s);
         // TODO: cannot get info whether was deleted. Do something
         m_store->remove(s);
         return DeleteResult::Success;
     }
 
-    std::vector<MediaListEntry> get_medias(
-        std::optional<MediaType> type) override {
+    std::vector<MediaListEntry> get_medias() override {
         auto entries = m_store->list();
         std::vector<MediaListEntry> out{};
         out.reserve(entries.size());
-        for (const auto& e : entries) {
-            auto [type_name, key] = plai::split_left(e, "/");
-            auto type_v = plai::net::parse_media_type(type_name);
-            if (!type_v)
-                throw std::runtime_error(
-                    "Corrupted database: Invalid key prefix");
-            out.emplace_back(*type_v, std::string(key));
-        }
+        for (const auto& e : entries) { out.emplace_back(e); }
         return out;
     }
 

@@ -8,27 +8,6 @@
 #include <utility>
 
 namespace plai::net {
-// TODO: There should be a better place for this
-// Maybe under media/?
-enum class MediaType {
-    Image,
-    Video,
-};
-
-constexpr std::optional<MediaType> parse_media_type(std::string_view name) {
-    if (name == "image") return MediaType::Image;
-    if (name == "video") return MediaType::Video;
-    return std::nullopt;
-}
-
-constexpr std::string_view serialize_media_type(MediaType t) {
-    using enum MediaType;
-    switch (t) {
-        case MediaType::Image: return "image";
-        case MediaType::Video: return "video";
-    }
-    std::unreachable();
-}
 
 enum class DeleteResult {
     Success,
@@ -41,7 +20,6 @@ struct MediaMeta {
 };
 
 struct MediaListEntry {
-    MediaType type;
     std::string key;
 };
 
@@ -57,13 +35,13 @@ class ApiV1 : public Virtual {
     // /_ping
     virtual void ping() {}
 
-    virtual MediaMeta get_media(MediaType type, std::string_view key) = 0;
+    virtual MediaMeta get_media(std::string_view key) = 0;
 
     /**
      * \brief Media upload
      * */
     virtual void put_media(
-        MediaType type, std::string_view key,
+        std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body) = 0;
 
     /**
@@ -74,7 +52,7 @@ class ApiV1 : public Virtual {
      *    Scheduled - marked for deletion and will be done later
      *    Failed - does not exist
      * */
-    virtual DeleteResult delete_media(MediaType type, std::string_view key) = 0;
+    virtual DeleteResult delete_media(std::string_view key) = 0;
 
     /**
      * \brief List all get_medias
@@ -83,8 +61,7 @@ class ApiV1 : public Virtual {
      *
      * \return List of medias
      * */
-    virtual std::vector<MediaListEntry> get_medias(
-        std::optional<MediaType> type) = 0;
+    virtual std::vector<MediaListEntry> get_medias() = 0;
 
     /**
      * \brief Play medias
@@ -106,16 +83,15 @@ class DefaultApi : public ApiV1 {
  public:
     explicit DefaultApi(Store* store) : m_store(store) { assert(store); }
 
-    MediaMeta get_media(MediaType type, std::string_view key) override;
+    MediaMeta get_media(std::string_view key) override;
 
     void put_media(
-        MediaType type, std::string_view key,
+        std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body) override;
 
-    DeleteResult delete_media(MediaType type, std::string_view key) override;
+    DeleteResult delete_media(std::string_view key) override;
 
-    std::vector<MediaListEntry> get_medias(
-        std::optional<MediaType> type) override;
+    std::vector<MediaListEntry> get_medias() override;
 
  private:
     Store* m_store;
