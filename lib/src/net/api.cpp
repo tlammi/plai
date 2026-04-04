@@ -85,7 +85,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          };
                      })
             .service(
-                "/media/items/{name}",
+                "/medias/items/{name}",
                 http::METHOD_GET | http::METHOD_PUT | http::METHOD_DELETE,
                 [api](const http::Request& req) -> http::Response {
                     auto name = req.target().path_params().at("name");
