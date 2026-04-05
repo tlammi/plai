@@ -12,6 +12,7 @@ namespace plai::net {
 enum class DeleteResult {
     Success,
     NotFound,
+    Referenced,
 };
 
 struct MediaMeta {
