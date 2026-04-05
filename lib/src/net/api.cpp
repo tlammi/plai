@@ -111,6 +111,11 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                             case DeleteResult::NotFound:
                                 return {.body = "Not found",
                                         .status_code = PLAI_HTTP(404)};
+                            case DeleteResult::Referenced:
+                                return {.body =
+                                            "Resource referenced by another "
+                                            "resource",
+                                        .status_code = PLAI_HTTP(409)};
                         }
                         std::unreachable();
                     }
