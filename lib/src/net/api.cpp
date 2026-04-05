@@ -108,7 +108,7 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                             case DeleteResult::Success:
                                 return {.body = "done",
                                         .status_code = PLAI_HTTP(200)};
-                            case DeleteResult::Failure:
+                            case DeleteResult::NotFound:
                                 return {.body = "Not found",
                                         .status_code = PLAI_HTTP(404)};
                         }
