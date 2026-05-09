@@ -18,7 +18,7 @@ constexpr size_t next_active_playlist(const auto& playlists,
     if (idx == playlists.size()) {
         idx = 0;
         while (idx < orig_idx && !playlists[idx].active) ++idx;
-        if (idx == orig_idx) idx = npos;
+        if (idx == orig_idx && !playlists[idx].active) idx = npos;
     }
     assert(idx < playlists.size() || idx == npos);
     return idx;

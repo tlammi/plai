@@ -68,3 +68,24 @@ TEST_P(Test, EvtActive) {
     evt = str->next();
     plist = std::get_if<PlaylistEvt>(&evt);
 }
+
+TEST_P(Test, EmptyPlaylist) {
+    str->set("foo", {});
+    auto evt = str->next();
+    ASSERT_TRUE(std::holds_alternative<NullEvt>(evt));
+}
+
+TEST_P(Test, SkipInactive) {
+    auto m = mk_strvec("media");
+    str->set("foo", {.medias = m, .active = true});
+    str->set("bar", {.medias = m});
+
+    auto evt = str->next();
+    ASSERT_TRUE(std::holds_alternative<PlaylistEvt>(evt));
+    evt = str->next();
+    ASSERT_TRUE(std::holds_alternative<MediaEvt>(evt));
+    evt = str->next();
+    auto* plist = std::get_if<PlaylistEvt>(&evt);
+    ASSERT_TRUE(plist);
+    ASSERT_EQ(plist->name, "foo");
+}
