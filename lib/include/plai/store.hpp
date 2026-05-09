@@ -5,6 +5,7 @@
 #include <plai/c_str.hpp>
 #include <plai/crypto.hpp>
 #include <plai/virtual.hpp>
+#include <utility>
 #include <vector>
 
 namespace plai {
@@ -78,6 +79,79 @@ class Store : public Virtual {
      * \param key Key of the blob to delete
      * */
     virtual void remove(CStr key) = 0;
+};
+
+class Transaction;
+
+class Transactional : public Virtual {
+    friend Transaction;
+
+ public:
+    virtual Transaction begin_transaction() = 0;
+
+ private:
+    virtual void commit_transaction() noexcept = 0;
+    virtual void cancel_transaction() noexcept = 0;
+};
+
+class Transaction {
+ public:
+    constexpr Transaction() noexcept = default;
+    constexpr explicit Transaction(Transactional& parent) noexcept
+        : m_parent(&parent) {}
+
+    Transaction(const Transaction&) = delete;
+    Transaction& operator=(const Transaction&) = delete;
+
+    constexpr Transaction(Transaction&& other) noexcept
+        : m_parent(std::exchange(other.m_parent, nullptr)) {}
+
+    constexpr Transaction& operator=(Transaction&& other) noexcept {
+        std::destroy_at(this);
+        std::construct_at(this, std::move(other));
+        return *this;
+    }
+
+    constexpr ~Transaction() noexcept {
+        auto* parent = std::exchange(m_parent, nullptr);
+        if (parent) parent->cancel_transaction();
+    }
+
+    void commit() noexcept {
+        auto* parent = std::exchange(m_parent, nullptr);
+        if (parent) parent->commit_transaction();
+    }
+
+ private:
+    Transactional* m_parent{};
+};
+
+struct MediaMeta {
+    size_t size;
+    crypto::Sha256 digest;
+};
+
+enum class MediaDelStatus {
+    Success,     // Ok
+    NotFound,    // No such media
+    Referenced,  // Used by a playlist
+};
+
+struct PlaylistSpec {
+    std::vector<std::string> items{};
+    bool active{};
+};
+
+class Store2 : public Virtual {
+ public:
+    virtual Transaction begin_transaction() = 0;
+
+    virtual std::vector<std::string> medias() = 0;
+
+    virtual void media_set(CStr key, std::span<const std::byte> data) = 0;
+    virtual MediaDelStatus media_delete(CStr key) = 0;
+    virtual std::optional<MediaMeta> media_meta(CStr key);
+    virtual std::optional<std::vector<std::byte>> media_get(CStr key) = 0;
 };
 
 std::unique_ptr<Store> sqlite_store(CStr path);
