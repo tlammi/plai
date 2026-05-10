@@ -36,14 +36,25 @@ class PlaylistStore : public Virtual {
     };
 
     /**
-     * \brief Replace playlist medias with new values
+     * \brief Add new media to the playlist
      *
-     * This adds new playlist entries at the specified location and removes as
-     * many entries keeping the list length the same. The oldest entries are
-     * removed.
+     * \param nm Playlist name
+     * \param loc Insertion location
+     * \param medias Medias to insert
      * */
-    virtual void rotate(CStr nm, Location loc,
-                        std::span<const std::string> medias) = 0;
+    virtual void amend(CStr nm, Location loc,
+                       std::span<const std::string> medias) = 0;
+
+    /**
+     * \brief Trim the playlist
+     *
+     * Removes the oldest items from the playlist until it reaches the given
+     * size. If the playlist has the same size already or is smaller nothing is
+     * done.
+     *
+     * \return Number of items removed
+     * */
+    virtual size_t trim(CStr nm, size_t size) = 0;
 
     struct PlaylistEvt {
         std::string name;

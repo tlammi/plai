@@ -1,2 +1,2 @@
 
-TESTS += files('playlist_store.cpp')
+TESTS += files('playlist_store.cpp', 'playlist_cursor.cpp')
