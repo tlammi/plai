@@ -49,6 +49,8 @@ class PlaylistCursor {
         m_winsize = window_size;
     }
 
+    size_t window_size() const noexcept { return m_winsize; }
+
     template <class T>
     explicit PlaylistCursor(std::initializer_list<T> list)
         : PlaylistCursor(std::views::all(list)) {}

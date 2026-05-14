@@ -106,11 +106,6 @@ class ApiV2 : public Virtual {
     // /_ping
     virtual void ping() {}
 
-    struct MediaMeta {
-        size_t size;
-        crypto::Sha256 digest;
-    };
-
     virtual MediaMeta media_get(std::string_view key) = 0;
 
     enum class MediaPutStatus {
