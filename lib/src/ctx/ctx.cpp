@@ -1,4 +1,5 @@
 #include <map>
+#include <mutex>
 #include <plai/ctx/ctx.hpp>
 #include <plai/ctx/multi_playlist_cursor.hpp>
 #include <plai/net/http/exceptions.hpp>
@@ -38,8 +39,11 @@ MediaData make_media(std::vector<uint8_t> data) {
 }  // namespace
 
 class CtxImpl final : public Ctx {
+    [[nodiscard]] auto do_lock() { return std::unique_lock(m_mut); }
+
  public:
     net::MediaMeta media_get(std::string_view key) override {
+        auto lk = do_lock();
         auto it = m_medias.find(key);
         if (it == m_medias.end()) throw_http(PLAI_HTTP(404));
         return it->second.meta;
@@ -49,6 +53,7 @@ class CtxImpl final : public Ctx {
         std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body)
         override {
+        auto lk = do_lock();
         auto data = std::vector<uint8_t>();
         while (true) {
             auto chunk = body();
@@ -65,6 +70,7 @@ class CtxImpl final : public Ctx {
     }
 
     void media_delete(std::string_view key) override {
+        auto lk = do_lock();
         // TODO: Check that not part of any playlist
         auto it = m_medias.find(key);
         if (it == m_medias.end()) throw_http(PLAI_HTTP(404));
@@ -72,12 +78,17 @@ class CtxImpl final : public Ctx {
     }
 
     std::vector<std::string> medias_get() override {
+        auto lk = do_lock();
         return m_medias | std::views::keys | std::ranges::to<std::vector>();
     }
 
-    void medias_prune() override { throw_http(PLAI_HTTP(501)); }
+    void medias_prune() override {
+        auto lk = do_lock();
+        throw_http(PLAI_HTTP(501));
+    }
 
     PlaylistInfo playlist_info(std::string_view key) override {
+        auto lk = do_lock();
         using namespace std::chrono;
         // TODO: Check if exists
         auto& pl = m_cursor[key];
@@ -92,11 +103,13 @@ class CtxImpl final : public Ctx {
     }
 
     void playlist_activate(std::string_view key, bool active) override {
+        auto lk = do_lock();
         m_cursor[key].active = active;
     }
 
     void playlist_medias_append(std::string_view key, Location loc,
                                 std::span<const std::string> medias) override {
+        auto lk = do_lock();
         using enum Location;
         switch (loc) {
             case Front: m_cursor[key].cursor.insert_front(medias); break;
@@ -107,11 +120,13 @@ class CtxImpl final : public Ctx {
 
     void playlist_medias_delete(std::string_view key, Location loc,
                                 std::span<const std::string> medias) override {
+        auto lk = do_lock();
         throw_http(PLAI_HTTP(501));
     }
 
     void playlist_medias_rotate(std::string_view key, Location loc,
                                 std::span<const std::string> medias) override {
+        auto lk = do_lock();
         auto& cursor = m_cursor[key].cursor;
         auto orig_size = cursor.entries().size();
         using enum Location;
@@ -125,10 +140,12 @@ class CtxImpl final : public Ctx {
 
     void playlist_set_image_duration(std::string_view key,
                                      size_t image_ms) override {
+        auto lk = do_lock();
         m_cursor[key].image_duration = std::chrono::milliseconds(image_ms);
     }
 
     std::optional<media::Media> next_media() override {
+        auto lk = do_lock();
         if (!m_curr) {
             m_cursor.reset();
             m_curr = m_cursor.next();
@@ -142,6 +159,7 @@ class CtxImpl final : public Ctx {
     }
 
  private:
+    std::mutex m_mut{};
     std::map<std::string, MediaData, std::less<>> m_medias{};
     MultiPlaylistCursor m_cursor{};
     MultiPlaylistCursor::Playlist* m_curr{};

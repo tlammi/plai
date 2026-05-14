@@ -1,6 +1,7 @@
 #include <csignal>
 #include <mutex>
 #include <plai.hpp>
+#include <plai/ctx/ctx.hpp>
 #include <upp/linux/signal.hpp>
 
 #include "cli.hpp"
@@ -66,8 +67,6 @@ class ApiImpl : public plai::net::DefaultApi {
 };
 #endif
 
-class ApiImpl : public plai::net::DefaultV2Api {};
-
 int run(const Cli& args) {
     std::atomic<plai::play::Player*> ptr_player{};
     auto listener = upp::linux::signal_listener{SIGINT};
@@ -115,11 +114,11 @@ int run(const Cli& args) {
             {.image = std::move(frm), .target = args.watermark_tgt});
     }
 
+    auto ctx = plai::ctx::make_context();
     auto player =
-        plai::play::Player(frontend.get(), &playlist, std::move(opts));
+        plai::play::Player(frontend.get(), ctx.get(), std::move(opts));
     // auto api = ApiImpl(store.get(), &playlist, &player);
-    auto api = ApiImpl();
-    auto srv = plai::net::launch_api(&api, args.socket);
+    auto srv = plai::net::launch_api(ctx.get(), args.socket);
     auto srv_thread = std::jthread([&] { srv->run(); });
     ptr_player = &player;
     player.run();
