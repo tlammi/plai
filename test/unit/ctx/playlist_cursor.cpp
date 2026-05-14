@@ -75,3 +75,29 @@ TEST(Insert, Next) {
     auto vals = next_n(c, 4);
     ASSERT_THAT(vals, ElementsAre("baz", "asd", "bar", ""));
 }
+
+TEST(Next, LargeWindow) {
+    auto c = Cursor{"foo", "bar"};
+    constexpr static auto winsize = 3;
+    c.set_window_size(winsize);
+    auto out = std::vector<std::string>();
+    out.reserve(winsize * 2);
+    for (size_t i = 0; i < winsize * 2; ++i) { out.push_back(c.next()); }
+
+    auto expected =
+        std::vector<std::string>{"foo", "bar", "foo", "", "bar", "foo"};
+    ASSERT_EQ(out, expected);
+}
+
+TEST(Next, SmallWindow) {
+    auto c = Cursor{"foo", "bar"};
+    constexpr static auto winsize = 1;
+    constexpr static auto elem_count = winsize * 5;
+    c.set_window_size(winsize);
+    auto out = std::vector<std::string>();
+    out.reserve(elem_count);
+    for (size_t i = 0; i < elem_count; ++i) { out.push_back(c.next()); }
+
+    auto expected = std::vector<std::string>{"foo", "", "bar", "", "foo"};
+    ASSERT_EQ(out, expected);
+}

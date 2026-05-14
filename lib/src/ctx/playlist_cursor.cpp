@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cassert>
-#include <limits>
 #include <plai/ctx/playlist_cursor.hpp>
 #include <ranges>
 namespace plai::ctx {
@@ -8,8 +7,6 @@ namespace plai::ctx {
 namespace rv = std::views;
 
 namespace {
-
-static constexpr auto npos = std::numeric_limits<size_t>::max();
 
 constexpr auto to_elem(auto& id_store) {
     return rv::transform([&](const auto& str) {
@@ -83,10 +80,19 @@ size_t PlaylistCursor::trim_to_size(size_t max_size) {
 }
 
 std::string PlaylistCursor::next() {
-    if (m_idx >= m_medias.size()) {
-        m_idx = 0;
+    if (m_winsize == npos) {
+        if (m_idx >= m_medias.size()) {
+            m_idx = 0;
+            return {};
+        }
+        return m_medias[m_idx++].name;
+    }
+    if (m_win_idx >= m_winsize) {
+        m_win_idx = 0;
         return {};
     }
+    if (m_idx >= m_medias.size()) m_idx = 0;
+    ++m_win_idx;
     return m_medias[m_idx++].name;
 }
 

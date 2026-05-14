@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <plai/exceptions.hpp>
 #include <plai/virtual.hpp>
 #include <ranges>
@@ -19,6 +20,7 @@ namespace plai::ctx {
  * */
 class PlaylistCursor {
  public:
+    static constexpr auto npos = std::numeric_limits<size_t>::max();
     struct Entry {
         std::string name;
         size_t id;
@@ -26,7 +28,8 @@ class PlaylistCursor {
 
     constexpr PlaylistCursor() noexcept = default;
 
-    explicit PlaylistCursor(std::vector<Entry> entries) noexcept
+    explicit PlaylistCursor(std::vector<Entry> entries,
+                            size_t window_size = npos) noexcept
         : m_medias(std::move(entries)) {}
 
     template <std::ranges::range R>
@@ -40,6 +43,10 @@ class PlaylistCursor {
                    }) |
                    std::ranges::to<std::vector>()) {
         for (auto& m : m_medias) m.id = m_id++;
+    }
+
+    void set_window_size(size_t window_size) noexcept {
+        m_winsize = window_size;
     }
 
     template <class T>
@@ -98,6 +105,14 @@ class PlaylistCursor {
 
  private:
     std::vector<Entry> m_medias{};
+    // Window size, i.e. how many entries to iterate at once.
+    //
+    // "npos" is a special value so that window size equals m_medias.size()
+    size_t m_winsize{npos};
+
+    // index to keep track of window iteration
+    size_t m_win_idx{};
+
     // Current media index
     //
     size_t m_idx{0};
