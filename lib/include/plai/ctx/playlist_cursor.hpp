@@ -61,11 +61,6 @@ class PlaylistCursor {
     const auto& entries() const noexcept { return m_medias; }
 
     /**
-     * \brief Reset the cursor back to beginning
-     * */
-    void reset() noexcept;
-
-    /**
      * \brief Set the medias
      *
      * This overwrites the medias gracefully moving from an actively played

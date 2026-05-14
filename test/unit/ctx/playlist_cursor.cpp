@@ -39,7 +39,7 @@ TEST(Next, Empty) {
 TEST(Next, Values) {
     auto c = Cursor{"foo", "bar"};
     auto vals = next_n(c, 4);
-    ASSERT_THAT(vals, ElementsAre("foo", "bar", "", ""));
+    ASSERT_THAT(vals, ElementsAre("foo", "bar", "", "foo"));
 }
 
 TEST(Trim, One) {
@@ -55,7 +55,7 @@ TEST(Insert, Front) {
     auto v = mk_strvec("baz", "asd");
     c.insert_front(v);
     auto vals = next_n(c, 4);
-    ASSERT_THAT(vals, ElementsAre("bar", "", "", ""));
+    ASSERT_THAT(vals, ElementsAre("bar", "", "baz", "asd"));
 }
 
 TEST(Insert, Back) {

@@ -21,11 +21,9 @@ constexpr auto to_elem(auto& id_store) {
 }
 }  // namespace
 
-void PlaylistCursor::reset() noexcept { m_idx = 0; }
-
 void PlaylistCursor::overwrite(std::span<const std::string> data) {
     m_medias = data | to_elem(m_id) | std::ranges::to<std::vector>();
-    reset();
+    m_idx = 0;
 }
 
 void PlaylistCursor::insert_front(std::span<const std::string> data) {
@@ -85,7 +83,10 @@ size_t PlaylistCursor::trim_to_size(size_t max_size) {
 }
 
 std::string PlaylistCursor::next() {
-    if (m_idx >= m_medias.size()) return {};
+    if (m_idx >= m_medias.size()) {
+        m_idx = 0;
+        return {};
+    }
     return m_medias[m_idx++].name;
 }
 
