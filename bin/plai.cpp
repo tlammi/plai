@@ -45,6 +45,7 @@ class Playlist final : public plai::play::MediaSrc {
     }
 };
 
+#if 0
 class ApiImpl : public plai::net::DefaultApi {
     using Parent = plai::net::DefaultApi;
 
@@ -63,6 +64,9 @@ class ApiImpl : public plai::net::DefaultApi {
         // TODO: indicate success/failure...
     }
 };
+#endif
+
+class ApiImpl : public plai::net::DefaultV2Api {};
 
 int run(const Cli& args) {
     std::atomic<plai::play::Player*> ptr_player{};
@@ -113,7 +117,8 @@ int run(const Cli& args) {
 
     auto player =
         plai::play::Player(frontend.get(), &playlist, std::move(opts));
-    auto api = ApiImpl(store.get(), &playlist, &player);
+    // auto api = ApiImpl(store.get(), &playlist, &player);
+    auto api = ApiImpl();
     auto srv = plai::net::launch_api(&api, args.socket);
     auto srv_thread = std::jthread([&] { srv->run(); });
     ptr_player = &player;
