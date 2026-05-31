@@ -1,4 +1,5 @@
 #include <csignal>
+#include <mutex>
 #include <plai.hpp>
 
 #include "cli.hpp"
