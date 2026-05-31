@@ -47,6 +47,22 @@ class CStr {
         return std::string_view(m_span) == std::string_view(other.m_span);
     }
 
+    constexpr bool operator==(std::string_view other) const noexcept {
+        return std::string_view(m_span) == other;
+    }
+
+    constexpr bool operator==(const std::string& other) const noexcept {
+        return std::string_view(m_span) == other;
+    }
+
+    constexpr bool operator<(const std::string& other) const noexcept {
+        return std::string_view(m_span) < other;
+    }
+    friend constexpr bool operator<(const std::string& other,
+                                    CStr self) noexcept {
+        return std::string_view(self.m_span) < other;
+    }
+
  private:
     std::span<const char> m_span;
 };
