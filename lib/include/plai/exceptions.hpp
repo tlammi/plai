@@ -21,6 +21,14 @@ class ValueError : public Exception {
  private:
 };
 
+class KeyError : public Exception {
+ public:
+    KeyError(const char* msg) noexcept : Exception(msg) {}
+    KeyError(const std::string& s) noexcept : Exception(s) {}
+
+ private:
+};
+
 class Cancelled : public Exception {};
 
 }  // namespace plai
