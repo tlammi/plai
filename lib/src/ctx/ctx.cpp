@@ -42,7 +42,7 @@ class CtxImpl final : public Ctx {
     [[nodiscard]] auto do_lock() { return std::unique_lock(m_mut); }
 
  public:
-    net::MediaMeta media_get(std::string_view key) override {
+    std::optional<net::MediaMeta> media_get(std::string_view key) override {
         auto lk = do_lock();
         auto it = m_medias.find(key);
         if (it == m_medias.end()) throw_http(PLAI_HTTP(404));

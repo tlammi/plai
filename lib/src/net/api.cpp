@@ -182,7 +182,7 @@ constexpr auto service_fn(auto&& fn) {
 }
 }  // namespace
 
-auto DefaultV2Api::media_get(std::string_view key) -> MediaMeta {
+auto DefaultV2Api::media_get(std::string_view key) -> std::optional<MediaMeta> {
     not_implemented();
 }
 
@@ -247,9 +247,15 @@ std::unique_ptr<ApiServer> launch_api(ApiV2* api, std::string_view bind) {
                     auto name = req.target().path_params().at("name");
                     if (req.method() == http::METHOD_GET) {
                         auto meta = api->media_get(name);
+                        if (!meta) {
+                            return {
+                                .body = "Media does not exist",
+                                .status_code = PLAI_HTTP(404),
+                            };
+                        }
                         return {.body = plai::format(
                                     R"({{"digest":"sha256:{}","size":{}}})",
-                                    crypto::hex_str(meta.digest), meta.size)};
+                                    crypto::hex_str(meta->digest), meta->size)};
                     }
                     if (req.method() == http::METHOD_PUT) {
                         api->media_put(name,

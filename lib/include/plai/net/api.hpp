@@ -106,7 +106,7 @@ class ApiV2 : public Virtual {
     // /_ping
     virtual void ping() {}
 
-    virtual MediaMeta media_get(std::string_view key) = 0;
+    virtual std::optional<MediaMeta> media_get(std::string_view key) = 0;
 
     enum class MediaPutStatus {
         Ok,
@@ -176,7 +176,7 @@ class ApiV2 : public Virtual {
 
 class DefaultV2Api : public ApiV2 {
  public:
-    MediaMeta media_get(std::string_view key) override;
+    std::optional<MediaMeta> media_get(std::string_view key) override;
 
     MediaPutStatus media_put(
         std::string_view key,
