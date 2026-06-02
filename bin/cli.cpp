@@ -92,6 +92,12 @@ Cli parse_cli(int argc, char** argv) {
     parser.add_option(
         "-s,--socket", out.socket,
         plai::format("Path to API unix socket. Default '{}'", out.socket));
+    parser.add_option("--background", out.background,
+                      "Background to render to the screen");
+    parser.add_option("--background-w", out.watermark_tgt.w,
+                      "Background width scaling");
+    parser.add_option("--background-h", out.watermark_tgt.h,
+                      "Background height scaling");
     parser.add_option(
         "-w,--watermark", out.watermark,
         "Place a watermark to the player. Empty string to disable.");
