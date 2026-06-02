@@ -91,8 +91,10 @@ int run(const Cli& args) {
     };
 
     if (!args.background.empty()) {
+        PLAI_INFO("using background from {}", args.background);
+        auto frm = plai::media::decode_image(args.background);
         opts.background = {
-            .image = plai::media::decode_image(args.background),
+            .image = std::move(frm),
             .target = args.background_tgt,
         };
     }
