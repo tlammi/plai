@@ -74,6 +74,22 @@ TEST(Insert, Next) {
     c.insert_next(v);
     auto vals = next_n(c, 4);
     ASSERT_THAT(vals, ElementsAre("baz", "asd", "bar", ""));
+    auto names = c.entries() |
+                 std::views::transform([](const auto& e) { return e.name; }) |
+                 std::ranges::to<std::vector>();
+    ASSERT_THAT(names, ElementsAre("foo", "baz", "asd", "bar"));
+}
+
+TEST(Insert, NextImmediate) {
+    auto c = Cursor{"foo", "bar"};
+    auto v = mk_strvec("baz", "asd");
+    c.insert_next(v);
+    auto vals = next_n(c, 4);
+    ASSERT_THAT(vals, ElementsAre("baz", "asd", "foo", "bar"));
+    auto names = c.entries() |
+                 std::views::transform([](const auto& e) { return e.name; }) |
+                 std::ranges::to<std::vector>();
+    ASSERT_THAT(names, ElementsAre("baz", "asd", "foo", "bar"));
 }
 
 TEST(Next, LargeWindow) {

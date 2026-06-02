@@ -89,7 +89,6 @@ class CtxImpl final : public Ctx {
     std::optional<PlaylistInfo> playlist_info(std::string_view key) override {
         auto lk = do_lock();
         using namespace std::chrono;
-        // TODO: Check if exists
         if (!m_cursor.contains(key)) return std::nullopt;
         auto& pl = m_cursor[key];
         auto winsize = pl.cursor.window_size();
@@ -109,6 +108,7 @@ class CtxImpl final : public Ctx {
 
     void playlist_medias_append(std::string_view key, Location loc,
                                 std::span<const std::string> medias) override {
+        PLAI_INFO("adding entries to playlist '{}': '{}'", key, medias);
         auto lk = do_lock();
         using enum Location;
         switch (loc) {
@@ -116,6 +116,11 @@ class CtxImpl final : public Ctx {
             case Back: m_cursor[key].cursor.insert_back(medias); break;
             case Next: m_cursor[key].cursor.insert_next(medias); break;
         }
+        auto entries =
+            m_cursor[key].cursor.entries() |
+            std::views::transform([](const auto& e) { return e.name; }) |
+            std::ranges::to<std::vector>();
+        PLAI_INFO("playlist '{}' now has entries '{}'", key, entries);
     }
 
     void playlist_medias_delete(std::string_view key, Location loc,
@@ -151,8 +156,14 @@ class CtxImpl final : public Ctx {
             m_curr = m_cursor.next();
         }
         while (m_curr) {
+            PLAI_INFO("playing from playlist: '{}'", m_curr->name);
             auto res = m_curr->cursor.next();
-            if (!res.empty()) return m_medias.at(res).data;
+            if (!res.empty()) {
+                PLAI_INFO("playing media '{}'", res);
+                auto& dat = m_medias.at(res).data;
+                PLAI_DEBUG("media size: '{}'", dat.data().size());
+                return dat;
+            }
             m_curr = m_cursor.next();
         }
         return std::nullopt;

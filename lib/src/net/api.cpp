@@ -299,19 +299,40 @@ std::unique_ptr<ApiServer> launch_api(ApiV2* api, std::string_view bind) {
                             .status_code = PLAI_HTTP(200),
                         };
                     }
-                    auto medias =
-                        rfl::json::read<std::vector<std::string>>(req.text());
-                    if (!medias) {
+                    struct Body {
+                        std::string action;
+                        std::string location;
+                        std::vector<std::string> items;
+                    };
+                    auto body = rfl::json::read<Body>(req.text());
+                    if (!body) {
                         return {
                             .body = "Invalid body",
                             .status_code = PLAI_HTTP(400),
                         };
                     }
                     api->playlist_medias_append(name, ApiV2::Location::Next,
-                                                *medias);
+                                                (*body).items);
                     return {
                         .body = "OK",
-                        .status_code = 200,
+                        .status_code = PLAI_HTTP(200),
+                    };
+                }))
+            .service(
+                "/playlists/items/{name}/active", http::METHOD_POST,
+                service_fn([api](const http::Request& req) -> http::Response {
+                    auto name = req.target().path_params().at("name");
+                    auto body = rfl::json::read<bool>(req.text());
+                    if (!body) {
+                        return {
+                            .body = "Invalid body",
+                            .status_code = PLAI_HTTP(404),
+                        };
+                    }
+                    api->playlist_activate(name, *body);
+                    return {
+                        .body = "OK",
+                        .status_code = PLAI_HTTP(200),
                     };
                 }))
             .commit());
