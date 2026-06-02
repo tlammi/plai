@@ -17,6 +17,8 @@ class MultiPlaylistCursor {
 
     Playlist& operator[](std::string_view nm);
 
+    bool contains(std::string_view nm) const noexcept;
+
     bool erase(std::string_view nm);
 
     Playlist* next() noexcept;

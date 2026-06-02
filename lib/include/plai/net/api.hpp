@@ -148,7 +148,7 @@ class ApiV2 : public Virtual {
         bool active;
     };
 
-    virtual PlaylistInfo playlist_info(std::string_view key) = 0;
+    virtual std::optional<PlaylistInfo> playlist_info(std::string_view key) = 0;
 
     virtual void playlist_activate(std::string_view key, bool active) = 0;
 
@@ -188,7 +188,7 @@ class DefaultV2Api : public ApiV2 {
 
     void medias_prune() override;
 
-    PlaylistInfo playlist_info(std::string_view key) override;
+    std::optional<PlaylistInfo> playlist_info(std::string_view key) override;
 
     void playlist_activate(std::string_view key, bool active) override;
 

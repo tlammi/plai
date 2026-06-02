@@ -12,11 +12,16 @@ auto find_by_name(auto& collection, std::string_view nm) {
 auto MultiPlaylistCursor::operator[](std::string_view nm) -> Playlist& {
     auto it = find_by_name(m_playlists, nm);
     if (it == m_playlists.end()) {
-        m_playlists.emplace_back();
+        m_playlists.emplace_back(std::make_unique<Playlist>());
         return *m_playlists.back();
     }
     return **it;
 }
+bool MultiPlaylistCursor::contains(std::string_view nm) const noexcept {
+    auto it = find_by_name(m_playlists, nm);
+    return it != m_playlists.end();
+}
+
 bool MultiPlaylistCursor::erase(std::string_view nm) {
     auto it = find_by_name(m_playlists, nm);
     if (it == m_playlists.end()) return false;

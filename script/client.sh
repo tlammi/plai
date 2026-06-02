@@ -14,6 +14,18 @@ upload() {
   echo "${typ}/${nm}"
 }
 
+activate() {
+  nm="${1}"
+  ucurl "http://_/plai/v1/playlists/items/${nm}/active" -d "${2}"
+}
+
+append() {
+  nm="${1}"
+  shift
+  medias="$(echo ${@} | tr ' ' '\n' | jq -Rn '[inputs]')"
+  ucurl "http://_/plai/v1/playlists/items/${nm}/medias" -d "{"
+}
+
 play() {
   data="${1}"
   ucurl "http://_/plai/v1/play?replay=true" -d "${data}"

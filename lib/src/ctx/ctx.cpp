@@ -2,6 +2,7 @@
 #include <mutex>
 #include <plai/ctx/ctx.hpp>
 #include <plai/ctx/multi_playlist_cursor.hpp>
+#include <plai/logs/logs.hpp>
 #include <plai/net/http/exceptions.hpp>
 #include <plai/net/http/macros.hpp>
 
@@ -53,13 +54,11 @@ class CtxImpl final : public Ctx {
         std::string_view key,
         std::function<std::optional<std::span<const uint8_t>>()> body)
         override {
-        auto lk = do_lock();
         auto data = std::vector<uint8_t>();
-        while (true) {
-            auto chunk = body();
-            if (!chunk) break;
+        for (auto chunk = body(); chunk; chunk = body()) {
             data.append_range(*chunk);
         }
+        auto lk = do_lock();
         auto it = m_medias.find(key);
         if (it == m_medias.end()) {
             m_medias[std::string(key)] = make_media(std::move(data));
@@ -87,13 +86,14 @@ class CtxImpl final : public Ctx {
         throw_http(PLAI_HTTP(501));
     }
 
-    PlaylistInfo playlist_info(std::string_view key) override {
+    std::optional<PlaylistInfo> playlist_info(std::string_view key) override {
         auto lk = do_lock();
         using namespace std::chrono;
         // TODO: Check if exists
+        if (!m_cursor.contains(key)) return std::nullopt;
         auto& pl = m_cursor[key];
         auto winsize = pl.cursor.window_size();
-        return {
+        return PlaylistInfo{
             .medias = {},
             .window_size = winsize == PlaylistCursor::npos ? 0 : winsize,
             .image_ms = static_cast<size_t>(

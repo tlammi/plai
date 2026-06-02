@@ -199,7 +199,8 @@ std::vector<std::string> DefaultV2Api::medias_get() { not_implemented(); }
 
 void DefaultV2Api::medias_prune() { not_implemented(); }
 
-auto DefaultV2Api::playlist_info(std::string_view key) -> PlaylistInfo {
+auto DefaultV2Api::playlist_info(std::string_view key)
+    -> std::optional<PlaylistInfo> {
     not_implemented();
 }
 
@@ -274,6 +275,44 @@ std::unique_ptr<ApiServer> launch_api(ApiV2* api, std::string_view bind) {
                     (void)req;
                     auto res = api->medias_get();
                     return {.body = to_str(res), .status_code = PLAI_HTTP(200)};
+                }))
+            .service(
+                "/playlists/items/{name}/medias",
+                http::METHOD_PATCH | http::METHOD_PUT,
+                service_fn([api](const http::Request& req) -> http::Response {
+                    auto name = req.target().path_params().at("name");
+                    if (req.method() == http::METHOD_PUT) {
+                        auto medias = rfl::json::read<std::vector<std::string>>(
+                            req.text());
+                        if (!medias) {
+                            return {
+                                .body = "Invalid body",
+                                .status_code = PLAI_HTTP(400),
+                            };
+                        }
+                        PLAI_WARN(
+                            "Setting playlist not supported, amending instead");
+                        api->playlist_medias_append(name, ApiV2::Location::Next,
+                                                    *medias);
+                        return {
+                            .body = "OK",
+                            .status_code = PLAI_HTTP(200),
+                        };
+                    }
+                    auto medias =
+                        rfl::json::read<std::vector<std::string>>(req.text());
+                    if (!medias) {
+                        return {
+                            .body = "Invalid body",
+                            .status_code = PLAI_HTTP(400),
+                        };
+                    }
+                    api->playlist_medias_append(name, ApiV2::Location::Next,
+                                                *medias);
+                    return {
+                        .body = "OK",
+                        .status_code = 200,
+                    };
                 }))
             .commit());
 }
