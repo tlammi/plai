@@ -12,7 +12,10 @@ auto find_by_name(auto& collection, std::string_view nm) {
 auto MultiPlaylistCursor::operator[](std::string_view nm) -> Playlist& {
     auto it = find_by_name(m_playlists, nm);
     if (it == m_playlists.end()) {
-        m_playlists.emplace_back(std::make_unique<Playlist>());
+        // NOLINTNEXTLINE
+        m_playlists.emplace_back(new Playlist{
+            .name = std::string(nm),
+        });
         return *m_playlists.back();
     }
     return **it;
