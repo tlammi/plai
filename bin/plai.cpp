@@ -90,12 +90,22 @@ int run(const Cli& args) {
         .wait_media = true,
     };
 
+    if (!args.background.empty()) {
+        PLAI_INFO("using background from {}", args.background);
+        auto frm = plai::media::decode_image(args.background);
+        opts.background = {
+            .image = std::move(frm),
+            .target = args.background_tgt,
+        };
+    }
+
     if (!args.watermark.empty()) {
         PLAI_INFO("using watermark from {}", args.watermark);
         auto frm = plai::media::decode_image(args.watermark);
         opts.watermarks.push_back(
             {.image = std::move(frm), .target = args.watermark_tgt});
     }
+
     auto player =
         plai::play::Player(frontend.get(), &playlist, std::move(opts));
     auto api = ApiImpl(store.get(), &playlist, &player);

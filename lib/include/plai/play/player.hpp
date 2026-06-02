@@ -18,6 +18,11 @@ struct Watermark {
     RenderTarget target{};
 };
 
+struct Background {
+    media::Frame image{};
+    RenderTarget target{};
+};
+
 static constexpr auto IMAGE_DEFAULT_DURATION = std::chrono::seconds(5);
 static constexpr auto BLEND_DEFAULT_DURATION = std::chrono::seconds(5);
 
@@ -25,6 +30,8 @@ struct PlayerOpts {
     std::string accel{"sw"};
     /// Watermarks. Rendered in order
     std::vector<Watermark> watermarks{};
+
+    Background background{};
 
     /**
      * \brief How long to display images

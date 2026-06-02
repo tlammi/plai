@@ -45,10 +45,16 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
           m_processor(
               *this, *this,
               MediaProcessor::Opts{.hwaccel = make_hwaccel(m_opts.accel)}) {
+        if (m_opts.background.image) {
+            m_background_texture = m_front->texture();
+            m_background_texture->update(m_opts.background.image);
+            m_background_texture->blend_mode(BlendMode::Blend);
+        }
         m_watermark_textures.reserve(m_opts.watermarks.size());
         for (size_t i = 0; i < m_opts.watermarks.size(); ++i) {
             m_watermark_textures.push_back(m_front->texture());
             m_watermark_textures.back()->update(m_opts.watermarks.at(i).image);
+            m_watermark_textures.back()->blend_mode(BlendMode::Blend);
         }
         // TODO: inspect why this is needed, without this decoding largish JPEG
         // images may (and does so maybe 9/10 times) crash the program.
@@ -117,6 +123,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         if (m_prev_frame) {
             do_blend(was_still, m_still, frm);
         } else {
+            render_background();
             m_front_text->update(frm);
             m_front_text->render_to(IMG_TARGET);
         }
@@ -129,6 +136,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     // MediaProcessor::Output
     void new_frame(media::Frame frm) override {
         poll_front();
+        render_background();
         m_front_text->update(frm);
         m_front_text->render_to(IMG_TARGET);
         ++m_frame_count;
@@ -147,12 +155,17 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         PLAI_DEBUG("showed media with {} frames", m_frame_count);
     }
 
+    void render_background() {
+        // Presume videos cover the whole screen
+        if (m_still && m_background_texture)
+            m_background_texture->render_to(m_opts.background.target);
+    }
+
     void render_watermarks(
         uint8_t alpha = std::numeric_limits<uint8_t>::max()) {
         for (size_t i = 0; i < m_watermark_textures.size(); ++i) {
             auto& text = m_watermark_textures.at(i);
             auto& watermark = m_opts.watermarks.at(i);
-            text->blend_mode(BlendMode::Blend);
             text->alpha(alpha);
             text->render_to(watermark.target);
         }
@@ -185,6 +198,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
             m_back_text->alpha(std::numeric_limits<uint8_t>::max());
             poll_loop([&] {
                 m_front->render_clear();
+                render_background();
                 m_back_text->update(m_prev_frame);
                 auto alpha = watermark_alpha_calc();
                 m_back_text->render_to(IMG_TARGET);
@@ -198,6 +212,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         auto alpha_calc = AlphaCalc(m_opts.blend_dur);
         poll_loop([&] {
             m_front->render_clear();
+            render_background();
             auto alpha = alpha_calc();
             m_back_text->alpha(max_alpha - alpha);
             m_back_text->update(m_prev_frame);
@@ -214,6 +229,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
             auto watermark_alpha_calc = AlphaCalc(watermark_blend);
             poll_loop([&] {
                 m_front->render_clear();
+                render_background();
                 m_front_text->update(frm);
                 m_front_text->render_to(IMG_TARGET);
                 auto alpha = watermark_alpha_calc();
@@ -263,6 +279,7 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
     std::mutex m_media_mut{};
     std::condition_variable m_media_cv{};
     media::Media m_enqueued_media{};
+    std::unique_ptr<Texture> m_background_texture{};
     std::vector<std::unique_ptr<Texture>> m_watermark_textures{};
     std::unique_ptr<Texture> m_front_text{m_front->texture()};
     std::unique_ptr<Texture> m_back_text{m_front->texture()};

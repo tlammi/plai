@@ -12,6 +12,8 @@ struct Cli {
     std::string accel{"sw"};
     std::string db;
     std::string socket;
+    std::string background;
+    plai::RenderTarget background_tgt{};
     std::string watermark;
     plai::RenderTarget watermark_tgt{};
     plai::Duration blend;
