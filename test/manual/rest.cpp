@@ -1,10 +1,14 @@
+#include <print>
+
+int main() { std::println("hello, this needs re-implementation"); }
+
+#if 0
 #include <plai/exceptions.hpp>
 #include <plai/net/api.hpp>
 #include <plai/store.hpp>
 #include <plai/thirdparty/magic_enum.hpp>
 #include <plai/util/str.hpp>
 #include <print>
-
 using plai::Store;
 using plai::net::DeleteResult;
 using plai::net::MediaMeta;
@@ -72,3 +76,4 @@ int main(int argc, char** argv) {
     auto srv = plai::net::launch_api(&api, argv[1]);
     srv->run();
 }
+#endif

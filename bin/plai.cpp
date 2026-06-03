@@ -46,27 +46,6 @@ class Playlist final : public plai::play::MediaSrc {
     }
 };
 
-#if 0
-class ApiImpl : public plai::net::DefaultApi {
-    using Parent = plai::net::DefaultApi;
-
-    Playlist* m_playlist;
-    plai::play::Player* m_player;
-
- public:
-    ApiImpl(plai::Store* store, Playlist* playlist, plai::play::Player* player)
-        : Parent(store), m_playlist(playlist), m_player(player) {
-        assert(playlist);
-    }
-    void play(const std::vector<std::string>& medias, bool replay) override {
-        m_playlist->set_entries(medias);
-        m_playlist->set_repeat(replay);
-        m_player->clear_media_queue();
-        // TODO: indicate success/failure...
-    }
-};
-#endif
-
 int run(const Cli& args) {
     std::atomic<plai::play::Player*> ptr_player{};
     auto listener = upp::linux::signal_listener{SIGINT};
