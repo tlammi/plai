@@ -1,6 +1,7 @@
 #include <csignal>
 #include <mutex>
 #include <plai.hpp>
+#include <upp/linux/signal.hpp>
 
 #include "cli.hpp"
 
@@ -67,13 +68,19 @@ int run(const Cli& args) {
     auto start = plai::Clock::now();
     static constexpr auto player_timeout = 5s;
     std::atomic<plai::play::Player*> ptr_player{};
-    static constexpr std::array<plai::os::Signal, 1> mask{SIGINT};
-    plai::os::SignalListener listener(mask, [&] {
-        if (ptr_player) {
-            ptr_player.load()->stop();
-            return true;
+    auto listener = upp::linux::signal_listener{SIGINT};
+    auto waiter = std::jthread([&] {
+        while (true) {
+            auto sig = listener.wait();
+            PLAI_INFO("Received signal");
+            (void)sig;
+            if (ptr_player) {
+                PLAI_DEBUG("Notifying player");
+                ptr_player.load()->stop();
+                return;
+            }
+            PLAI_WARN("Player has not been registered yet. Ignoring signal.");
         }
-        return plai::Clock::now() - start > player_timeout;
     });
     plai::logs::init(args.log_level, args.log_file);
 
@@ -113,6 +120,7 @@ int run(const Cli& args) {
     auto srv_thread = std::jthread([&] { srv->run(); });
     ptr_player = &player;
     player.run();
+    PLAI_INFO("Player exited");
     srv->stop();
     return 0;
 }

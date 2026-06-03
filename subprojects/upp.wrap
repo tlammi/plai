@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/tlammi/upp.git
+depth = 1
+revision = 396e227b987f9fd92257ad40ccd0810465b23c4c
