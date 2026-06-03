@@ -65,8 +65,6 @@ class ApiImpl : public plai::net::DefaultApi {
 };
 
 int run(const Cli& args) {
-    auto start = plai::Clock::now();
-    static constexpr auto player_timeout = 5s;
     std::atomic<plai::play::Player*> ptr_player{};
     auto listener = upp::linux::signal_listener{SIGINT};
     auto waiter = std::jthread([&] {
