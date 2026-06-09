@@ -61,6 +61,8 @@ class Api final : public plai::net::ApiV1 {
         std::println(stderr, "play called");
     }
 
+    void amend_play(const std::vector<std::string>& medias) override {}
+
  private:
     Store* m_store{};
 };

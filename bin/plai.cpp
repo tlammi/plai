@@ -16,6 +16,7 @@ class Playlist final : public plai::play::MediaSrc {
     std::mutex m_mut{};
     plai::Store* m_store;
     std::vector<std::string> m_keys{};
+    std::vector<std::string> m_enqued{};
     size_t m_idx{0};
     bool m_repeat{true};
 
@@ -29,6 +30,20 @@ class Playlist final : public plai::play::MediaSrc {
         m_idx = 0;
         return true;
     }
+
+    void amend_entries(const std::vector<std::string>& entries) {
+        auto lk = std::lock_guard(m_mut);
+        m_enqued.clear();
+        // Push all the new entries
+        for (const auto& e : entries) {
+            if (!std::ranges::contains(m_keys, e)) { m_enqued.push_back(e); }
+        }
+        // Push existing elements preserving the order
+        for (const auto& k : m_keys) {
+            if (std::ranges::contains(entries, k)) m_enqued.push_back(k);
+        }
+    }
+
     void set_repeat(bool val) {
         auto lk = std::lock_guard(m_mut);
         m_repeat = val;
@@ -36,7 +51,11 @@ class Playlist final : public plai::play::MediaSrc {
 
     std::optional<plai::media::Media> next_media() override {
         auto lk = std::lock_guard(m_mut);
-        if (m_keys.empty()) return std::nullopt;
+        if (m_keys.empty()) {
+            if (m_enqued.empty()) return std::nullopt;
+            m_keys = std::exchange(m_enqued, {});
+            m_idx = 0;
+        }
         if (m_idx >= m_keys.size()) {
             if (!m_repeat) return std::nullopt;
             m_idx = 0;
@@ -61,6 +80,10 @@ class ApiImpl : public plai::net::DefaultApi {
         m_playlist->set_repeat(replay);
         m_player->clear_media_queue();
         // TODO: indicate success/failure...
+    }
+
+    void amend_play(const std::vector<std::string>& medias) override {
+        m_playlist->amend_entries(medias);
     }
 };
 

@@ -127,33 +127,41 @@ std::unique_ptr<ApiServer> launch_api(ApiV1* api, std::string_view bind) {
                          return {.body = to_str(res),
                                  .status_code = PLAI_HTTP(200)};
                      })
-            .service("/play", http::METHOD_POST,
-                     [api](const http::Request& req) -> http::Response {
-                         auto txt = req.text();
-                         PLAI_DEBUG("got playlist: {}", txt);
-                         auto parsed =
-                             rfl::json::read<std::vector<std::string>>(txt);
-                         if (!parsed) {
-                             return {.body = "Invalid playlist",
-                                     .status_code = PLAI_HTTP(400)};
-                         }
-                         bool replay = true;
-                         const auto& query_params = req.query_params();
-                         if (query_params.contains("replay")) {
-                             std::string_view replay_str =
-                                 query_params.at("replay");
-                             if (replay_str == "true") {
-                                 replay = true;
-                             } else if (replay_str == "false") {
-                                 replay = false;
-                             } else {
-                                 return {.body = "Invalid replay parameter",
-                                         .status_code = PLAI_HTTP(400)};
-                             }
-                         }
-                         api->play(*parsed, replay);
-                         return {.body = "OK", .status_code = PLAI_HTTP(200)};
-                     })
+            .service(
+                "/play", http::METHOD_POST | http::METHOD_PATCH,
+                [api](const http::Request& req) -> http::Response {
+                    auto txt = req.text();
+                    PLAI_DEBUG("got playlist: {}", txt);
+                    auto parsed =
+                        rfl::json::read<std::vector<std::string>>(txt);
+                    if (!parsed)
+                        return {.body = "Invalid playlist",
+                                .status_code = PLAI_HTTP(400)};
+                    if (req.method() == http::METHOD_POST) {
+                        bool replay = true;
+                        const auto& query_params = req.query_params();
+                        if (query_params.contains("replay")) {
+                            std::string_view replay_str =
+                                query_params.at("replay");
+                            if (replay_str == "true") {
+                                replay = true;
+                            } else if (replay_str == "false") {
+                                replay = false;
+                            } else {
+                                return {.body = "Invalid replay parameter",
+                                        .status_code = PLAI_HTTP(400)};
+                            }
+                        }
+                        api->play(*parsed, replay);
+                        return {.body = "OK", .status_code = PLAI_HTTP(200)};
+                    }
+                    if (req.method() == http::METHOD_PATCH) {
+                        api->amend_play(*parsed);
+                        return {.body = "OK", .status_code = PLAI_HTTP(200)};
+                    }
+                    return {.body = "Unsupported method",
+                            .status_code = PLAI_HTTP(500)};
+                })
             .commit());
 }
 

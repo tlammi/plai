@@ -67,6 +67,14 @@ class ApiV1 : public Virtual {
      * */
     // TODO: Should this have a return value to indicate success/failure?
     virtual void play(const std::vector<std::string>& medias, bool replay) = 0;
+
+    /**
+     * \brief Update the current playlist
+     *
+     * The behavior is implementation specific. Typically this tries to smartly
+     * merge the playlists and removes duplicates.
+     * */
+    virtual void amend_play(const std::vector<std::string>& medias) = 0;
 };
 
 /**

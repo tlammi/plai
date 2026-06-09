@@ -21,6 +21,7 @@ constexpr std::optional<Method> convert_boost_verb(http::verb v) {
         case boost::beast::http::verb::delete_: return METHOD_DELETE;
         case boost::beast::http::verb::post: return METHOD_POST;
         case boost::beast::http::verb::put: return METHOD_PUT;
+        case boost::beast::http::verb::patch: return METHOD_PATCH;
         case boost::beast::http::verb::unknown:
         case boost::beast::http::verb::head:
         case boost::beast::http::verb::connect:
@@ -46,7 +47,6 @@ constexpr std::optional<Method> convert_boost_verb(http::verb v) {
         case boost::beast::http::verb::notify:
         case boost::beast::http::verb::subscribe:
         case boost::beast::http::verb::unsubscribe:
-        case boost::beast::http::verb::patch:
         case boost::beast::http::verb::purge:
         case boost::beast::http::verb::mkcalendar:
         case boost::beast::http::verb::link:

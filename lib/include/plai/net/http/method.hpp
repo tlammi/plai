@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 namespace plai::net::http {
 
@@ -11,5 +10,6 @@ constexpr Method METHOD_GET = 0x01;
 constexpr Method METHOD_POST = 0x02;
 constexpr Method METHOD_PUT = 0x04;
 constexpr Method METHOD_DELETE = 0x08;
+constexpr Method METHOD_PATCH = 0x10;
 
 }  // namespace plai::net::http
