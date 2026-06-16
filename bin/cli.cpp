@@ -110,6 +110,9 @@ Cli parse_cli(int argc, char** argv) {
     bool stretch = false;
     parser.add_flag("--watermark-stretch,!--no-watermark-stretch", stretch,
                     "Whether to stretch watermark");
+    bool bg_stretch = false;
+    parser.add_flag("--bg-stretch,!--no-bg-stretch", bg_stretch,
+                    "Whether to stretch background");
     parser.add_option(
         "--accel", out.accel,
         "Hardware acceleration to use. 'sw' for software (default).");
@@ -134,6 +137,8 @@ Cli parse_cli(int argc, char** argv) {
     out.watermark_tgt.horizontal = pos_horizontal(wm_pos);
     out.watermark_tgt.scaling =
         stretch ? plai::Scaling::Stretch : plai::Scaling::Fit;
+    out.background_tgt.scaling =
+        bg_stretch ? plai::Scaling::Stretch : plai::Scaling::Fit;
     out.blend = to_duration(blend);
     out.img_dur = to_duration(img_dur);
     return out;
