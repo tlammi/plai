@@ -4,6 +4,7 @@
 #include <upp/linux/signal.hpp>
 
 #include "cli.hpp"
+#include "plai/logs/logs.hpp"
 
 namespace plaibin {
 using namespace std::literals;
@@ -107,12 +108,16 @@ int run(const Cli& args) {
     });
     plai::logs::init(args.log_level, args.log_file);
 
+    PLAI_TRACE("setting up storage");
     auto store = plai::sqlite_store(args.db);
+    PLAI_TRACE("setting up playlist");
     auto playlist = Playlist(store.get());
+    PLAI_TRACE("setting up frontend");
     auto ftype = args.void_frontend ? plai::FrontendType::Void
                                     : plai::FrontendType::Sdl2;
     auto frontend = plai::frontend(ftype);
     frontend->set_fullscreen(args.fullscreen);
+    PLAI_TRACE("setting up player");
     auto opts = plai::play::PlayerOpts{
         .accel = std::move(args.accel),
         .image_dur = args.img_dur,
@@ -138,10 +143,12 @@ int run(const Cli& args) {
 
     auto player =
         plai::play::Player(frontend.get(), &playlist, std::move(opts));
+    PLAI_TRACE("creating API server");
     auto api = ApiImpl(store.get(), &playlist, &player);
     auto srv = plai::net::launch_api(&api, args.socket);
     auto srv_thread = std::jthread([&] { srv->run(); });
     ptr_player = &player;
+    PLAI_TRACE("starting player");
     player.run();
     PLAI_INFO("Player exited");
     srv->stop();
