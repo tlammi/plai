@@ -130,6 +130,15 @@ class Player::Impl final : MediaProcessor::Input, MediaProcessor::Output {
         std::swap(m_prev_frame, frm);
         render_watermarks(m_still ? std::numeric_limits<uint8_t>::max() : 0);
         m_front->render_current();
+        auto dbl = static_cast<double>(fps);
+        static constexpr auto large = 1'000.0;
+        if (dbl < 0.0 || dbl > large) {
+            PLAI_WARN("Insane FPS: {}", dbl);
+            fps = Frac<int>{30, 1};  // NOLINT
+            PLAI_INFO("Using sane FPS: {}", static_cast<double>(fps));
+        }
+        PLAI_DEBUG("Setting up rate limiter with FPS {}",
+                   static_cast<double>(fps));
         m_rlimit = rate_limiter(fps);
     }
 

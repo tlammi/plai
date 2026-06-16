@@ -46,6 +46,8 @@ void MediaProcessor::work(std::stop_token st) {
             auto [stream_idx, stream] = demux.best_video_stream();
             bool still = stream.is_still_image();
             PLAI_TRACE("Publishing new media meta");
+            PLAI_DEBUG("metadata: fps={}, still={}",
+                       static_cast<double>(stream.fps()), still);
             m_meta.push({.fps = stream.fps(), .still = still});
             auto decoder = media::Decoder(stream, m_accel);
             auto pkt = media::Packet();
