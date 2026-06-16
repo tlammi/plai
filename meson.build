@@ -6,7 +6,7 @@ add_project_arguments('-Wfatal-errors', language:'cpp')
 
 reflectcpp_dep = dependency('reflect-cpp', 'reflectcpp', required: false)
 
-upp_dep = dependency('upp', fallback: ['upp', 'upp_dep'], default_options: {'default_library': 'static'})
+upp_dep = dependency('upp', fallback: ['upp', 'upp_dep'], default_options: {'default_library': 'static', 'tests': false})
 
 if not reflectcpp_dep.found()
   opts = cmake.subproject_options()
