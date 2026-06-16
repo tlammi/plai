@@ -16,8 +16,8 @@ bool StreamView::audio() const noexcept {
 }
 
 Frac<int> StreamView::fps() const noexcept {
-    auto num = m_raw->r_frame_rate.num;
-    auto den = m_raw->r_frame_rate.den;
+    auto num = m_raw->avg_frame_rate.num;
+    auto den = m_raw->avg_frame_rate.den;
     return {num, den};
 }
 bool StreamView::is_still_image() const noexcept {

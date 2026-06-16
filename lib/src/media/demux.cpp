@@ -42,6 +42,7 @@ Demux::Demux(std::span<const uint8_t> buf)
     // the passed context on failure :)
     Defer d{[&] { m_ctx = nullptr; }};
     AV_CHECK(avformat_open_input(&m_ctx, "dummy", nullptr, nullptr));
+    AV_CHECK(avformat_find_stream_info(m_ctx, NULL));
     d.cancel();
     clean_iobuf.cancel();
 }
