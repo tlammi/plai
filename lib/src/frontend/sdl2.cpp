@@ -68,7 +68,7 @@ class Sdl2Init {
 
  public:
     explicit Sdl2Init(Private /*unused*/) {
-        SDL_SetHint(SDL_HINT_VIDEODRIVER, "wayland,x11");
+        // SDL_SetHint(SDL_HINT_VIDEODRIVER, "wayland,x11");
         SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
     }
     ~Sdl2Init() {
