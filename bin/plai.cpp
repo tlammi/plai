@@ -58,6 +58,8 @@ class Playlist final : public plai::play::MediaSrc {
         }
         if (m_idx >= m_keys.size()) {
             if (!m_repeat) return std::nullopt;
+            PLAI_INFO("Switching to an enqueued playlist");
+            if (!m_enqued.empty()) m_keys = std::exchange(m_enqued, {});
             m_idx = 0;
         }
         return read_media(*m_store, m_keys.at(std::exchange(m_idx, m_idx + 1)));
